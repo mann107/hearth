@@ -131,8 +131,37 @@
   var fire = $('firelight'), fl = 0.18;
   setInterval(function () { fl += (0.12 + Math.random() * 0.16 - fl) * 0.45; fire.style.opacity = fl.toFixed(3); }, 110);
   var fxOn = store.get('hearthFx', true);
-  function applyFx() { $('fx').className = fxOn ? '' : 'off'; $('names').style.opacity = fxOn ? 0.92 : 0; }
+  function applyFx() { $('fx').className = fxOn ? '' : 'off'; $('names').style.opacity = fxOn ? 0.92 : 0; var ns = $('nameset'); if (ns) ns.style.opacity = fxOn ? 1 : 0; }
   applyFx();
+
+  /* ---------- stocking names: each one rides its own stocking's swing ---------- */
+  var nameEls = [], swing = null, lastCT = -1, lastWall = 0;
+  (function () {
+    var x = new XMLHttpRequest();
+    x.onload = function () {
+      try { swing = JSON.parse(x.responseText); } catch (e) { return; }
+      var holder = document.createElement('div'); holder.id = 'nameset'; $('names').parentNode.insertBefore(holder, $('names').nextSibling);
+      var loaded = 0, failed = false, keys = Object.keys(swing.names);
+      keys.forEach(function (n) {
+        var d = swing.names[n], im = document.createElement('img');
+        im.style.cssText = 'position:absolute;left:' + d.x + 'px;top:' + d.y + 'px;width:' + d.w + 'px;height:' + d.h + 'px;transform-origin:' + (d.px - d.x) + 'px ' + (d.py - d.y) + 'px;opacity:0;transition:opacity 1.2s ease';
+        im.onload = function () { if (++loaded === keys.length && !failed) { nameEls.forEach(function (e) { e.el.style.opacity = 0.95; }); $('names').style.display = 'none'; } };
+        im.onerror = function () { failed = true; log('stocking names not on USB yet – using the still version'); holder.parentNode.removeChild(holder); nameEls = []; };
+        im.src = H.personal('names/' + n + '.png'); holder.appendChild(im); nameEls.push({ el: im, deg: d.deg });
+      });
+    };
+    x.open('GET', H.asset('stockings.json'), true); x.send();
+  })();
+  function swingTick() {
+    requestAnimationFrame(swingTick);
+    if (!nameEls.length || !swing || !video.duration) return;
+    var now = performance.now(), ct = video.currentTime;
+    if (ct !== lastCT) { lastCT = ct; lastWall = now; }
+    var t = lastCT + Math.min(0.5, (now - lastWall) / 1000), D = video.duration, N = swing.frames;
+    var f = ((t % D) / D) * N, i0 = Math.floor(f) % N, a = f - Math.floor(f), i1 = (i0 + 1) % N;
+    for (var k = 0; k < nameEls.length; k++) { var dg = nameEls[k].deg; nameEls[k].el.style.transform = 'rotate(' + (dg[i0] * (1 - a) + dg[i1] * a).toFixed(2) + 'deg)'; }
+  }
+  requestAnimationFrame(swingTick);
 
   /* ---------- family photos in the two picture frames ---------- */
   function buildFrame(id, key) {
@@ -148,11 +177,9 @@
 
   /* ---------- the elf: hides somewhere new every 5 minutes ---------- */
   var SPOTS = [
-    ['mantel', 434.5, 419, 27, 38], ['balcony left', 221, 142, 21.5, 30], ['balcony right', 691, 195, 21.5, 30],
-    ['right lamp', 1581.5, 578, 28.5, 40], ['left lamp', 181.5, 608, 28.5, 40], ['coffee table', 1118.5, 801.5, 35, 49],
-    ['presents', 268.5, 827.5, 35, 49], ['presents by the window', 1479, 774.5, 34, 47.5], ['big window', 1328.5, 313.5, 23, 32],
-    ['hearth', 662.5, 641, 27, 38], ['chandelier', 110.5, 405.5, 23, 32], ['bookshelf', 249.5, 437.5, 24.5, 34.5],
-    ['fireplace wreath', 516.5, 244.5, 27, 19], ['side table', 133.5, 760, 32.5, 45.5]];
+    ['mantel', 434.5, 419, 27, 38], ['balcony railing', 221, 124, 21.5, 30], ['right lamp', 1581.5, 578, 28.5, 40], ['left lamp', 181.5, 608, 28.5, 40],
+    ['coffee table', 1112.5, 832.5, 35, 49], ['presents', 268.5, 827.5, 35, 49], ['presents by the window', 1479, 774.5, 34, 47.5],
+    ['big window', 1328.5, 313.5, 23, 32], ['chandelier', 110.5, 405.5, 23, 32], ['bookshelf', 249.5, 437.5, 24.5, 34.5], ['fireplace wreath', 516.5, 244.5, 27, 19]];
   var elf = $('elf'), elfAt = store.get('hearthElf', -1);
   function placeElf(i) {
     var s = SPOTS[i]; elf.src = H.asset('elves/elf_' + i + '.png');

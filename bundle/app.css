@@ -52,16 +52,16 @@
 /* ---------- info layer (fades after a minute) ---------- */
 #overlay{position:absolute;inset:0;opacity:0;transition:opacity 3s ease;pointer-events:none}
 #overlay.show{opacity:1}
-#tl,#tr,#bl,#santa,#houseText{text-shadow:0 2px 18px rgba(0,0,0,.55)}
+#tl,#tr,#bl,#santa,#houseText{text-shadow:0 1px 2px rgba(0,0,0,.6),0 0 14px rgba(0,0,0,.28);-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
 #tl{position:absolute;left:96px;top:78px}
 #greet{font-family:Fraunces,Georgia,serif;font-style:italic;font-weight:400;font-size:44px;color:#f7f1e6}
-#date{margin-top:8px;font-size:20px;letter-spacing:.6px;color:rgba(244,239,230,.78)}
+#date{margin-top:8px;font-size:21px;font-weight:500;letter-spacing:.6px;color:rgba(244,239,230,.86)}
 #tr{position:absolute;right:96px;top:64px;display:flex;align-items:baseline;gap:12px}
-#time{font-family:Fraunces,Georgia,serif;font-weight:300;font-size:112px;line-height:1;letter-spacing:-1px}
+#time{font-family:Fraunces,Georgia,serif;font-weight:300;-webkit-text-stroke:.3px rgba(247,241,230,.6);font-size:112px;line-height:1;letter-spacing:-1px}
 #ampm{font-size:22px;font-weight:500;letter-spacing:1.5px;color:rgba(244,239,230,.75)}
 #bl{position:absolute;left:96px;bottom:84px}
 #countdown{font-family:Fraunces,Georgia,serif;font-weight:500;font-size:46px;color:#f3cf86}
-#playing{margin-top:14px;display:flex;align-items:center;gap:12px;font-size:18px;color:rgba(244,239,230,.72)}
+#playing{margin-top:14px;display:flex;align-items:center;gap:12px;font-size:19px;font-weight:500;color:rgba(244,239,230,.8)}
 .dot{width:7px;height:7px;border-radius:50%;background:#f3cf86;box-shadow:0 0 10px #f3cf86;animation:breathe 2.6s ease-in-out infinite}
 @keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
 #br{position:absolute;right:88px;bottom:70px;display:flex;align-items:center;gap:26px}
@@ -85,3 +85,4 @@
 #toast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);padding:12px 22px;border-radius:999px;
   background:rgba(12,9,7,.5);font-size:18px;color:#f4efe6;opacity:0;transition:opacity .6s ease;white-space:nowrap}
 #toast.on{opacity:1}
+#nameset{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;transition:opacity 1.5s ease}
