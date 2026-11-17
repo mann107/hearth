@@ -112,6 +112,13 @@
       rampTo(target(), 8000); })();
   }
   setInterval(function () { if (!music.paused) store.set('hearthPos', Math.floor(music.currentTime)); }, 15000);
+  /* the TV can quietly pause music when the video changes source – keep it going */
+  setInterval(function () {
+    if (paused || !revealed || !music.src) return;
+    if (music.paused || music.ended) { log('music was paused by the TV – resuming'); var p = music.play(); if (p && p.catch) p.catch(function () {}); }
+    if (!rampT && Math.abs(music.volume - target()) > 0.02) rampTo(target(), 2000);
+  }, 4000);
+  video.addEventListener('playing', function () { setTimeout(function () { if (!paused && music.src && music.paused) { var p = music.play(); if (p && p.catch) p.catch(function () {}); } }, 600); });
 
   /* ---------- info layer ---------- */
   var hideT = null;
