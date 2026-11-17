@@ -147,7 +147,7 @@
         im.style.cssText = 'position:absolute;left:' + d.x + 'px;top:' + d.y + 'px;width:' + d.w + 'px;height:' + d.h + 'px;transform-origin:' + (d.px - d.x) + 'px ' + (d.py - d.y) + 'px;opacity:0;transition:opacity 1.2s ease';
         im.onload = function () { if (++loaded === keys.length && !failed) { nameEls.forEach(function (e) { e.el.style.opacity = 0.95; }); $('names').style.display = 'none'; } };
         im.onerror = function () { failed = true; log('stocking names not on USB yet – using the still version'); holder.parentNode.removeChild(holder); nameEls = []; };
-        im.src = H.personal('names/' + n + '.png'); holder.appendChild(im); nameEls.push({ el: im, deg: d.deg });
+        im.src = H.asset('names/' + n + '.png'); holder.appendChild(im); nameEls.push({ el: im, deg: d.deg });
       });
     };
     x.open('GET', H.asset('stockings.json'), true); x.send();
