@@ -1,0 +1,68 @@
+<div id="stage">
+  <div id="world">
+    <video id="scene" muted loop playsinline preload="auto"></video>
+    <div id="fx">
+      <img class="glow" id="glow0" data-asset="glow0.png" alt="">
+      <img class="glow" id="glow1" data-asset="glow1.png" alt="">
+      <div id="firelight"></div>
+    </div>
+    <img id="names" data-personal="names.png" alt="">
+    <div id="frameA" class="pframe"></div>
+    <div id="frameB" class="pframe"></div>
+    <div id="sky">
+      <div id="sleigh">
+        <div id="trail"></div>
+        <svg xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 420 90" width="300" height="64" aria-hidden="true">
+          <defs><filter id="glw" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b"/><feColorMatrix in="b" type="matrix" values="1 0 0 0 0  0 .78 0 0 0  0 0 .45 0 0  0 0 0 .9 0" result="halo"/><feGaussianBlur in="SourceGraphic" stdDeviation=".9" result="soft"/><feMerge><feMergeNode in="halo"/><feMergeNode in="soft"/></feMerge></filter><linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1c9"/><stop offset="1" stop-color="#d9a24f"/></linearGradient></defs>
+          <g fill="url(#gold)" filter="url(#glw)" opacity=".95">
+            <!-- four reindeer, leaping -->
+            <g id="rd">
+              <path d="M10 40 q10 -10 26 -8 q8 1 12 -4 l4 -10 l2 4 l3 -6 l1 7 l4 -3 l-2 8 q4 2 2 6 q-3 3 -8 2 q-4 8 -12 9 l6 14 l-4 1 l-7 -12 q-6 1 -12 -1 l-6 12 l-4 -1 l5 -13 q-6 -3 -4 -8z"/>
+            </g>
+            <use xlink:href="#rd" href="#rd" x="58" y="4"/><use xlink:href="#rd" href="#rd" x="116" y="-2"/><use xlink:href="#rd" href="#rd" x="174" y="3"/>
+            <!-- reins -->
+            <path d="M48 36 L250 52" stroke="#f3cf86" stroke-width="1.2" fill="none"/>
+            <!-- sleigh with santa -->
+            <path d="M246 46 q4 -10 16 -12 l4 -10 q6 -6 12 0 l2 8 l40 0 q10 0 14 8 l8 16 q2 6 -6 8 l-70 0 q-12 0 -18 -8z"/>
+            <path d="M240 72 l96 0 q14 0 14 -8" stroke="#f3cf86" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <circle cx="300" cy="26" r="7"/><path d="M296 20 l12 -12 l4 10z"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <img id="elf"  alt="">
+  </div>
+  <div id="vignette"></div>
+  <div id="dim"></div>
+
+  <div id="overlay" class="show">
+    <div id="tl"><div id="greet"></div><div id="date"></div></div>
+    <div id="tr"><span id="time"></span><span id="ampm"></span></div>
+    <div id="bl">
+      <div id="countdown"></div>
+      <div id="playing"><span class="dot"></span><span id="track">Fireplace &middot; instrumental Christmas</span></div>
+    </div>
+    <div id="br">
+      <canvas id="globe" width="220" height="220"></canvas>
+      <div id="santa">
+        <div id="santaLabel">Santa</div>
+        <div id="santaLine"></div>
+        <div id="santaBar"><div id="santaFill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="house">
+    <canvas id="bigGlobe" width="440" height="440"></canvas>
+    <div id="houseText">
+      <div id="houseKicker">Santa tracker</div>
+      <div id="houseLine"></div>
+      <div id="houseSub"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  
+  <div id="curtain"></div>
+</div>
+<audio id="music" loop preload="auto"></audio>

@@ -1,0 +1,87 @@
+#stage{position:absolute;left:0;top:0;transform-origin:0 0;width:1920px;height:1080px;overflow:hidden;font-family:Inter,sans-serif;color:#f4efe6}
+
+/* ---------- the room (everything that lives inside the video) ---------- */
+#world{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;transition:transform 4.5s cubic-bezier(.45,0,.2,1)}
+#scene{position:absolute;left:0;top:0;width:1920px;height:1080px;object-fit:cover;background:#140c09}
+#fx{position:absolute;inset:0;pointer-events:none;transition:opacity 1.5s ease}
+#fx.off{opacity:0}
+.glow{position:absolute;left:0;top:0;width:1920px;height:1080px;mix-blend-mode:screen;opacity:.35}
+#glow0{animation:twA 3.4s ease-in-out infinite}
+#glow1{animation:twB 4.3s ease-in-out infinite}
+@keyframes twA{0%,100%{opacity:.12}50%{opacity:.62}}
+@keyframes twB{0%,100%{opacity:.58}50%{opacity:.1}}
+#firelight{position:absolute;inset:0;mix-blend-mode:screen;opacity:.18;
+  background:radial-gradient(ellipse 620px 430px at 512px 615px,rgba(255,138,52,.55) 0%,rgba(255,120,40,.18) 45%,rgba(255,110,30,0) 100%)}
+
+#names{position:absolute;left:370px;top:460px;width:310px;height:110px;opacity:.92}
+.pframe{position:absolute}
+.pframe img{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;transition:opacity 2.5s ease}
+.pframe img.on{opacity:1}
+#frameA{left:289px;top:107px;width:53.5px;height:62px}
+#frameB{left:860.5px;top:465.5px;width:28px;height:62px}
+
+#sky{position:absolute;inset:0;pointer-events:none;
+  -webkit-mask-size:1920px 1080px;mask-size:1920px 1080px;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+#sleigh{position:absolute;left:0;top:0;width:300px;height:64px;opacity:0;transform:translate(2000px,70px)}
+#sleigh.fly{animation:fly 11s linear forwards}
+@keyframes fly{
+  0%{opacity:0;transform:translate(2000px,138px) scale(1.05)}
+  6%{opacity:1}
+  25%{transform:translate(1720px,176px) scale(1.1)}
+  50%{transform:translate(1460px,160px) scale(1.14)}
+  75%{transform:translate(1200px,196px) scale(1.18)}
+  94%{opacity:1}
+  100%{opacity:0;transform:translate(900px,222px) scale(1.22)}}
+#trail{position:absolute;left:250px;top:40px;width:340px;height:22px;border-radius:11px;
+  background:radial-gradient(ellipse at 0% 50%,rgba(255,214,140,.5),rgba(255,214,140,.12) 45%,rgba(255,214,140,0) 75%);filter:blur(6px)}
+#sleigh svg{position:absolute;left:0;top:0}
+
+#elf{position:absolute;left:0;top:0;width:27px;opacity:0;transition:opacity 1.4s ease,filter 0.6s ease;
+  filter:brightness(.86) sepia(.18) drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+#elf.on{opacity:1}
+#elf.hint{filter:brightness(1.15) sepia(.1) drop-shadow(0 0 6px #ffd27a) drop-shadow(0 0 14px #ffb347)}
+
+/* ---------- framing & mood ---------- */
+#vignette{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.42) 100%),
+             linear-gradient(180deg,rgba(0,0,0,.28) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 72%,rgba(0,0,0,.34) 100%)}
+#dim{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 6s ease}
+#curtain{position:absolute;inset:0;background:#000;opacity:1;pointer-events:none;transition:opacity 3.5s ease}
+#curtain.up{opacity:0}
+
+/* ---------- info layer (fades after a minute) ---------- */
+#overlay{position:absolute;inset:0;opacity:0;transition:opacity 3s ease;pointer-events:none}
+#overlay.show{opacity:1}
+#tl,#tr,#bl,#santa,#houseText{text-shadow:0 2px 18px rgba(0,0,0,.55)}
+#tl{position:absolute;left:96px;top:78px}
+#greet{font-family:Fraunces,Georgia,serif;font-style:italic;font-weight:400;font-size:44px;color:#f7f1e6}
+#date{margin-top:8px;font-size:20px;letter-spacing:.6px;color:rgba(244,239,230,.78)}
+#tr{position:absolute;right:96px;top:64px;display:flex;align-items:baseline;gap:12px}
+#time{font-family:Fraunces,Georgia,serif;font-weight:300;font-size:112px;line-height:1;letter-spacing:-1px}
+#ampm{font-size:22px;font-weight:500;letter-spacing:1.5px;color:rgba(244,239,230,.75)}
+#bl{position:absolute;left:96px;bottom:84px}
+#countdown{font-family:Fraunces,Georgia,serif;font-weight:500;font-size:46px;color:#f3cf86}
+#playing{margin-top:14px;display:flex;align-items:center;gap:12px;font-size:18px;color:rgba(244,239,230,.72)}
+.dot{width:7px;height:7px;border-radius:50%;background:#f3cf86;box-shadow:0 0 10px #f3cf86;animation:breathe 2.6s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
+#br{position:absolute;right:88px;bottom:70px;display:flex;align-items:center;gap:26px}
+#globe{width:150px;height:150px;filter:drop-shadow(0 0 22px rgba(120,170,255,.22))}
+#santa{width:300px}
+#santaLabel{font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:rgba(244,239,230,.6)}
+#santaLine{margin-top:8px;font-size:20px;color:#f7f1e6}
+#santaBar{margin-top:12px;height:3px;border-radius:2px;background:rgba(255,255,255,.16);overflow:hidden}
+#santaFill{height:3px;width:0;background:linear-gradient(90deg,#e8483c,#f3cf86);border-radius:2px;transition:width 2s ease}
+
+/* ---------- "Santa is over your house" moment ---------- */
+#house{position:absolute;left:0;right:0;bottom:0;height:520px;padding-top:150px;box-sizing:border-box;
+  background:radial-gradient(ellipse 900px 300px at 50% 75%,rgba(10,6,4,.55),rgba(10,6,4,0) 70%);display:flex;justify-content:center;align-items:center;gap:44px;
+  opacity:0;transform:translateY(24px);transition:opacity 2.2s ease,transform 2.2s ease;pointer-events:none}
+#house.on{opacity:1;transform:translateY(0)}
+#bigGlobe{width:280px;height:280px;filter:drop-shadow(0 0 40px rgba(120,170,255,.3))}
+#houseKicker{font-size:15px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:rgba(244,239,230,.65)}
+#houseLine{margin-top:10px;font-family:Fraunces,Georgia,serif;font-size:58px;font-weight:500;color:#f7f1e6;max-width:820px;line-height:1.1}
+#houseSub{margin-top:12px;font-size:21px;color:#f3cf86}
+
+#toast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);padding:12px 22px;border-radius:999px;
+  background:rgba(12,9,7,.5);font-size:18px;color:#f4efe6;opacity:0;transition:opacity .6s ease;white-space:nowrap}
+#toast.on{opacity:1}
