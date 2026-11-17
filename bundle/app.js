@@ -205,8 +205,7 @@
   }
 
   /* ---------- look closer: slow camera push-ins (yellow button) ---------- */
-  var VIEWS = [null, { x: 512, y: 505, s: 2.8, n: 'The mantel' }, { x: 316, y: 140, s: 5, n: 'Upstairs frame' },
-               { x: 874, y: 497, s: 6.5, n: 'Fireplace frame' }, { x: 1000, y: 560, s: 1.6, n: 'The tree' }];
+  var VIEWS = [null, { x: 512, y: 505, s: 2.8, n: 'The mantel' }, { x: 1000, y: 560, s: 1.6, n: 'The tree' }];
   var view = 0, viewT = null;
   function setView(i, quiet, holdMs) {
     view = i; var v = VIEWS[i];
@@ -217,15 +216,7 @@
     clearTimeout(viewT); viewT = setTimeout(function () { setView(0, true); }, holdMs || 45000);   // drift back to the full room
   }
 
-  /* ---------- memories: every 15 min the camera drifts in to a family photo ---------- */
-  var memStep = 0;
-  setInterval(function () {
-    if (view || overlay.className === 'show' || house.className === 'on' || flying) return;
-    var k = memStep++ % 3;
-    if (k === 0) { fA[pa].className = ''; pa = (pa + 1) % 7; fA[pa].className = 'on'; setTimeout(function () { setView(2, true, 16000); }, 2600); }
-    else if (k === 1) setView(1, true, 16000);   // the stockings
-    else { fB[pb].className = ''; pb = (pb + 1) % 7; fB[pb].className = 'on'; setTimeout(function () { setView(3, true, 16000); }, 2600); }
-  }, 15 * 60000);
+  /* (automatic camera drifts removed in Beta 0.12 – the room stays still) */
 
   /* ---------- Santa flying past the windows ---------- */
   var sleigh = $('sleigh'), flying = false;

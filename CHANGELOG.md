@@ -2,6 +2,10 @@
 
 Versioning: small updates and fixes go up by 0.01, very large feature batches by 0.1, until the 1.0 release.
 
+## Beta 0.12
+- Removed the automatic camera drifts into the picture frames and mantel; the room now stays still
+- Yellow button close-ups are now just the mantel and the tree
+
 ## Beta 0.11
 - Stocking names are measured to each stocking's real centre line, letter-spaced to sit fully on the fabric, and slightly smaller
 - Names now swing with their stockings: each stocking's sway was tracked across all 899 frames of the loop
