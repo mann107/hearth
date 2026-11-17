@@ -24,20 +24,58 @@
     .forEach(function (k) { try { tizen.tvinputdevice.registerKey(k); } catch (e) {} });
 
   /* ---------- video: 4K HEVC first, 1080p H.264 fallback ---------- */
-  var sources = [], hevc = !!(video.canPlayType('video/mp4; codecs="hvc1.1.6.L153.B0"') || video.canPlayType('video/mp4; codecs="hev1"') || video.canPlayType('video/mp4; codecs="hvc1"'));
-  if (H.media(SCENE, 'loop-4k.mp4') && hevc) sources.push(H.media(SCENE, 'loop-4k.mp4'));
-  if (H.media(SCENE, 'loop-1080.mp4')) sources.push(H.media(SCENE, 'loop-1080.mp4'));
-  sources.push(H.fallbackMedia.video);
-  var srcIdx = 0;
-  function loadVideo() { video.src = sources[srcIdx]; video.load(); var p = video.play(); if (p && p.catch) p.catch(function () {}); }
-  video.addEventListener('error', function () { log('video failed: ' + sources[srcIdx]); if (srcIdx < sources.length - 1) { srcIdx++; loadVideo(); } });
-  video.addEventListener('playing', function () { log('playing ' + sources[srcIdx].split('/').slice(-2).join('/') + ' ' + video.videoWidth + 'x' + video.videoHeight); });
+  /* ---------- media: USB stick -> Hearth's own storage on the TV -> built-in ---------- */
+  var hevc = !!(video.canPlayType('video/mp4; codecs="hvc1.1.6.L153.B0"') || video.canPlayType('video/mp4; codecs="hev1"') || video.canPlayType('video/mp4; codecs="hvc1"'));
+  var CACHE = 'hearth-cache';
+  function fsResolve(path, mode, ok, bad) { try { tizen.filesystem.resolve(path, ok, bad || function () { ok(null); }, mode || 'r'); } catch (e) { ok(null); } }
+  function cacheURI(name, cb) { fsResolve('wgt-private/' + CACHE + '/' + name, 'r', function (f) { cb(f && f.fileSize > 1024 ? f.toURI() : null); }); }
+  function usbLabel(cb) {
+    var labels = ['removable_sda2', 'removable_sda1', 'removable_sdb1', 'removable_sdb2'], i = 0;
+    (function next() { if (i >= labels.length) return cb(null); var l = labels[i++]; fsResolve(l + '/Hearth/config.json', 'r', function (f) { if (f) cb(l); else next(); }); })();
+  }
+  function copyToCache(name, usbRel, done) {
+    usbLabel(function (lab) {
+      if (!lab) { log('copy: could not resolve USB label'); return done(false); }
+      fsResolve('wgt-private', 'rw', function (dir) {
+        if (!dir) { log('copy: wgt-private unavailable'); return done(false); }
+        try { dir.createDirectory(CACHE); } catch (e) {}
+        var src = lab + '/Hearth/' + usbRel, dst = 'wgt-private/' + CACHE + '/' + name, t0 = Date.now();
+        log('copying ' + usbRel + ' into the TV…');
+        function ok() { log('copied ' + name + ' in ' + Math.round((Date.now() - t0) / 1000) + 's'); done(true); }
+        function bad(e) { log('copy failed (' + name + '): ' + (e && e.message)); done(false); }
+        try { dir.copyTo(src, dst, true, ok, function (e) {
+              if (tizen.filesystem.copyFile) { try { tizen.filesystem.copyFile(src, dst, true, ok, bad); } catch (x) { bad(x); } } else bad(e); }); }
+        catch (e) { try { tizen.filesystem.copyFile(src, dst, true, ok, bad); } catch (x) { bad(x); } }
+      });
+    });
+  }
+  var played = false, vTry = null, vWatch = null;
+  function playFrom(list, onFail) {
+    if (!list.length) return onFail && onFail();
+    var src = list[0]; clearTimeout(vWatch);
+    video.onerror = function () { log('video error ' + (video.error && video.error.code) + ': ' + src.split('/').slice(-2).join('/')); playFrom(list.slice(1), onFail); };
+    vWatch = setTimeout(function () { if (!played) { log('video stalled (state ' + video.readyState + '/' + video.networkState + '): ' + src.split('/').slice(-2).join('/')); playFrom(list.slice(1), onFail); } }, 7000);
+    vTry = src; video.src = src; video.load(); var p = video.play(); if (p && p.catch) p.catch(function () {});
+  }
+  video.addEventListener('playing', function () { if (!played) log('playing ' + (vTry || '').split('/').slice(-2).join('/') + ' ' + video.videoWidth + 'x' + video.videoHeight); played = true; clearTimeout(vWatch); });
   video.addEventListener('ended', function () { video.currentTime = 0; video.play(); });
+  function switchVideo(src) { var t = video.currentTime; played = false; playFrom([src], function () {}); }
+  var vName = SCENE + '-' + (hevc ? 'loop-4k.mp4' : 'loop-1080.mp4'), vUsbRel = 'scenes/' + SCENE + '/' + (hevc ? 'loop-4k.mp4' : 'loop-1080.mp4');
+  cacheURI(vName, function (cached) {
+    var list = [];
+    if (cached) list.push(cached);
+    if (H.media(SCENE, hevc ? 'loop-4k.mp4' : 'loop-1080.mp4')) list.push(H.media(SCENE, hevc ? 'loop-4k.mp4' : 'loop-1080.mp4'));
+    list.push(H.fallbackMedia.video);
+    playFrom(list, function () { log('no video source worked'); });
+    if (!cached && H.usb) {
+      // play the built-in fire meanwhile, then switch to the TV-stored 4K copy when the copy finishes
+      copyToCache(vName, vUsbRel, function (ok) { if (ok) cacheURI(vName, function (u) { if (u) { log('switching to stored 4K'); played = false; playFrom([u, H.fallbackMedia.video]); } }); });
+    }
+  });
   var revealed = false;
   function reveal() { if (revealed) return; revealed = true; $('curtain').className = 'up'; startMusic(); }
   video.addEventListener('playing', reveal);
   setTimeout(reveal, 4000);
-  loadVideo();
 
   /* ---------- music with gentle fades ---------- */
   var vol = store.get('hearthVol', 0.35), curVol = 0, rampT = null, paused = false;
@@ -51,14 +89,27 @@
       if (i >= steps) { clearInterval(rampT); rampT = null; if (done) done(); }
     }, 50);
   }
-  var musicSrcs = [H.media(SCENE, 'music.m4a'), H.fallbackMedia.music].filter(Boolean), mIdx = 0;
-  music.addEventListener('error', function () { log('music failed: ' + musicSrcs[mIdx]); if (mIdx < musicSrcs.length - 1) { mIdx++; music.src = musicSrcs[mIdx]; music.play(); } });
-  music.src = musicSrcs[0];
+  var mName = SCENE + '-music.m4a', musicList = [], mWatch = null, mPlaying = false;
+  function musicFrom(list) {
+    if (!list.length) { log('no music source worked'); return; }
+    var src = list[0]; clearTimeout(mWatch);
+    music.onerror = function () { log('music error: ' + src.split('/').slice(-2).join('/')); musicFrom(list.slice(1)); };
+    mWatch = setTimeout(function () { if (!mPlaying) { log('music stalled: ' + src.split('/').slice(-2).join('/')); musicFrom(list.slice(1)); } }, 9000);
+    music.src = src; var p = music.play(); if (p && p.catch) p.catch(function () {});
+  }
+  music.addEventListener('playing', function () { if (!mPlaying) log('music playing ' + (music.currentSrc || '').split('/').slice(-2).join('/')); mPlaying = true; clearTimeout(mWatch); });
+  var musicReady = false;
+  cacheURI(mName, function (cached) {
+    if (cached) musicList.push(cached);
+    if (H.media(SCENE, 'music.m4a')) musicList.push(H.media(SCENE, 'music.m4a'));
+    musicList.push(H.fallbackMedia.music); musicReady = true;
+    if (!cached && H.usb) setTimeout(function () { copyToCache(mName, 'scenes/' + SCENE + '/music.m4a', function (ok) { if (ok) log('music stored on the TV – used from next start'); }); }, 20000);
+  });
   function startMusic() {
     music.volume = 0; curVol = 0;
-    var start = store.get('hearthPos', 0); try { if (start > 0) music.currentTime = start; } catch (e) {}
-    var p = music.play(); if (p && p.catch) p.catch(function () {});
-    rampTo(target(), 8000);
+    (function go() { if (!musicReady) return setTimeout(go, 300); musicFrom(musicList);
+      music.addEventListener('loadedmetadata', function once() { music.removeEventListener('loadedmetadata', once); var st = store.get('hearthPos', 0); try { if (st > 0 && st < music.duration) music.currentTime = st; } catch (e) {} });
+      rampTo(target(), 8000); })();
   }
   setInterval(function () { if (!music.paused) store.set('hearthPos', Math.floor(music.currentTime)); }, 15000);
 
