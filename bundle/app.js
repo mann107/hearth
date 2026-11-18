@@ -2381,7 +2381,7 @@ var qrcode = function() {
                              fallbackMedia: { video: 'media/loop-1080.mp4', music: 'media/music-short.m4a' }, logLine: function () {}, config: {}, log: [] };
   var log = H.logLine || function () {};
   var SCENE = (H.config && H.config.scene) || 'fireplace';
-  var APP_VERSION = '0.2.7';
+  var APP_VERSION = '0.2.8';
   var BOOT = Date.now();
   var REMOTE = H.remote || 'https://mann107.github.io/hearth/';
 
@@ -2623,19 +2623,19 @@ var qrcode = function() {
   /* ================= living light ================= */
   var fire = $('firelight'), fl = 0.18;
   var boardEl = $('board');
-  /* hang the board in the chimney's own perspective: the stone courses run downhill to the right (about 3.5° at the
-     top of the board, 2.9° at the bottom, because we look up at the chimney from the left), and the verticals stay upright */
+  /* set the board into the chimney's own perspective. Mapped from the stone courses in the video (mortar joints fitted
+     across the chimney face): they run downhill to the right at about 9.5° near the top of the board and 7.5° at the
+     bottom, all meeting at one vanishing point off to the right; the chimney's edges stay vertical. The board is a flat
+     rectangle warped onto that grid, so its text and frame foreshorten exactly like the stone around it. */
   (function () {
-    var W = 178, Hh = 124, L = 421, T = 76, a1 = Math.tan(3.5 * Math.PI / 180), a2 = Math.tan(2.9 * Math.PI / 180);
-    var q = [[L, T], [L + W, T + W * a1], [L, T + Hh], [L + W, T + Hh + W * a2]];
-    // homography from the unit square to the quad, as a CSS matrix3d
-    var x0 = q[0][0], y0 = q[0][1], x1 = q[1][0], y1 = q[1][1], x2 = q[2][0], y2 = q[2][1], x3 = q[3][0], y3 = q[3][1];
+    var W = 164, Hh = 143, L = 434, R = 598, T = 62, B = 205, a1 = Math.tan(9.5 * Math.PI / 180), a2 = Math.tan(7.5 * Math.PI / 180);
+    var x0 = L, y0 = T, x1 = R, y1 = T + (R - L) * a1, x2 = L, y2 = B, x3 = R, y3 = B + (R - L) * a2;
     var dx1 = x1 - x3, dx2 = x2 - x3, dy1 = y1 - y3, dy2 = y2 - y3, sx = x0 - x1 - x2 + x3, sy = y0 - y1 - y2 + y3, den = dx1 * dy2 - dx2 * dy1;
     var g = (sx * dy2 - dx2 * sy) / den, h = (dx1 * sy - sx * dy1) / den;
     var a = x1 - x0 + g * x1, b = x2 - x0 + h * x2, c = x0, d = y1 - y0 + g * y1, e = y2 - y0 + h * y2, f = y0;
     var m = [a / W, d / W, 0, g / W, b / Hh, e / Hh, 0, h / Hh, 0, 0, 1, 0, c, f, 0, 1];
-    boardEl.style.left = '0px'; boardEl.style.top = '0px'; boardEl.style.transformOrigin = '0 0';
-    boardEl.style.transform = 'matrix3d(' + m.map(function (v) { return +v.toFixed(8); }).join(',') + ')';
+    boardEl.style.transformOrigin = '0 0';
+    boardEl.style.transform = 'matrix3d(' + m.map(function (v) { return +v.toFixed(9); }).join(',') + ')';
   })();
   setInterval(function () { fl += (0.12 + Math.random() * 0.16 - fl) * 0.45; fire.style.opacity = fl.toFixed(3); boardEl.style.setProperty('--fire', (0.9 + fl * 0.45).toFixed(3)); }, 110);
   var fxOn = store.get('hearthFx', true);

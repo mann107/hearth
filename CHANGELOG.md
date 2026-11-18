@@ -2,6 +2,11 @@
 
 Versioning: small updates and fixes go up by 0.01, very large feature batches by 0.1, until the 1.0 release.
 
+## Beta 0.2.8
+- Board rebuilt on a perspective grid mapped from the chimney itself: the mortar joints were traced across the stone and fitted to their shared vanishing point (about 9.5° downhill at the top of the board, 7.5° at the bottom, verticals upright). The frame, text and layout are warped onto that grid, so everything foreshortens with the stone
+- It's now set into the wall instead of hanging on it: a recessed opening with a thin flush trim, where you see the recess's top and right inner faces (we look up at it from the left), with no shadow cast onto the stone
+- Slightly bigger: it now runs from just under the ceiling line down to above the wreath
+
 ## Beta 0.2.7
 - The chimney board now sits in the chimney's own perspective: its top and bottom follow the stone courses (sloping down to the right as we look up at the chimney), the verticals stay upright, the frame shows its edge thickness on the left, and it casts its shadow down onto the stone. Slightly softened to match the video
 
