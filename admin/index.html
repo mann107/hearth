@@ -74,6 +74,20 @@ dt{color:var(--ink3)}dd{margin:0;text-align:right;color:var(--ink);overflow:hidd
 .hide{display:none!important}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 22px);transform:translate(-50%,20px);background:#2a2015;color:var(--ink);padding:11px 18px;border-radius:999px;font-size:14px;opacity:0;transition:.35s;pointer-events:none;border:1px solid rgba(243,207,134,.25)}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+.notel{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.notel:first-child{border-top:0}
+.notel .tx{flex:1;min-width:0}.notel .tx div{font:400 17px/1.25 Fraunces,Georgia,serif}.notel .tx small{color:var(--ink3);font-size:12px}
+.notel button{min-height:0;padding:7px 12px;font-size:13px;flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;background:var(--card2);border:1px solid var(--line);font-size:14px;color:var(--ink2);cursor:pointer;user-select:none}
+.chip i{width:8px;height:8px;border-radius:50%}
+.chip.on{color:var(--ink);border-color:rgba(243,207,134,.5);background:#2a2015}
+.game{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.game:first-child{border-top:0}.game .bar2{width:4px;height:30px;border-radius:2px;flex:none}
+.game .w{width:92px;flex:none;color:var(--ink2);font-size:12.5px;line-height:1.25}.game .w b{display:block;color:var(--ink);font-weight:500;font-size:14px}
+.game .m{flex:1;min-width:0}.game .m div{font:400 16px/1.2 Fraunces,Georgia,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.game .m small{color:var(--ink3);font-size:11.5px;letter-spacing:.6px;text-transform:uppercase}
+.game .sc{font-weight:500;font-variant-numeric:tabular-nums}
+.livec{color:#ff8a70}
 .foot{margin-top:26px;text-align:center;font-size:12px;color:var(--ink3)}
 .foot a{color:var(--ink3)}
 </style>
@@ -121,9 +135,22 @@ dt{color:var(--ink3)}dd{margin:0;text-align:right;color:var(--ink);overflow:hidd
     </section>
 
     <section class="card">
-      <h2>Send a note to the TV</h2>
-      <textarea id="msg" maxlength="160" placeholder="Dinner's ready! 🍽"></textarea>
-      <div class="msgrow"><input type="text" id="from" maxlength="30" placeholder="From (your name)"><button class="primary" id="send" style="min-height:0;padding:0 22px">Send</button></div>
+      <h2>The board on the chimney</h2>
+      <textarea id="msg" maxlength="140" placeholder="Dinner's ready! 🍽"></textarea>
+      <input type="text" id="from" maxlength="24" placeholder="From (your name)" style="margin-top:10px">
+      <div class="btns" style="margin-top:10px;grid-template-columns:1fr 1fr">
+        <button class="primary" id="pin">Pin to board</button>
+        <button id="send" style="text-align:center">Flash on screen</button>
+      </div>
+      <div id="notes" style="margin-top:16px"></div>
+      <p class="sub" style="margin:10px 0 0" id="boardNow"></p>
+    </section>
+
+    <section class="card">
+      <h2>Your teams</h2>
+      <div id="next"></div>
+      <div class="chips" id="chips"></div>
+      <p class="sub" style="margin:12px 0 0">When nothing is pinned, the board shows these teams' games: live scores, results and what's next.</p>
     </section>
 
     <section class="card">
@@ -232,6 +259,7 @@ dt{color:var(--ink3)}dd{margin:0;text-align:right;color:var(--ink);overflow:hidd
     return { push: function (v) { if (v == null || isNaN(v)) return; data.push(v); if (data.length > N) data.shift(); draw(); } };
   }
 
+  var B = null;
   var clients = [], S = null, lastState = 0, onlineFlag = null, lastDrop = null, dropRate = [], fromName = ls('hearthFrom') || '';
   var sp = {};
   function start() {
@@ -269,6 +297,7 @@ dt{color:var(--ink3)}dd{margin:0;text-align:right;color:var(--ink);overflow:hidd
   function onMsg(topic, txt, host) {
     if (topic === 'state') { try { var s = JSON.parse(txt); if (!S || s.t >= S.t) { S = s; S._host = host; lastState = Date.now(); render(); } } catch (e) {} }
     else if (topic === 'log') { try { renderLog(JSON.parse(txt)); } catch (e) {} }
+    else if (topic === 'board') { try { B = JSON.parse(txt); renderBoard(); } catch (e) {} }
     else if (topic === 'online') { onlineFlag = txt === 'online'; freshness(); }
     else if (topic === 'ack') { try { var a = JSON.parse(txt); if (a.pong && pings[a.pong]) { var ms = Math.round(performance.now() - pings[a.pong]); delete pings[a.pong]; $('rtt').innerHTML = ms + '<small>ms</small>'; sp.rtt.push(ms); } if (a.reloading) toast('Hearth is restarting on the TV'); } catch (e) {} }
   }
@@ -322,6 +351,29 @@ dt{color:var(--ink3)}dd{margin:0;text-align:right;color:var(--ink);overflow:hidd
     else { pill.className = 'pill live'; $('pillText').textContent = 'Live'; }
     $('sub').textContent = !S ? 'Waiting for the TV…' : (onlineFlag === false ? 'Last seen ' : 'Updated ') + (age < 2 ? 'just now' : age < 120 ? age + 's ago' : dur(age) + ' ago') + (S ? ' · up ' + dur(S.up + (age || 0)) : '');
   }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function agoT(t) { var m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; }
+  function whenT(ms) { var d = new Date(ms), n = new Date(), dd = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 864e5);
+    var day = dd === 0 ? (d.getHours() >= 17 ? 'Tonight' : 'Today') : dd === 1 ? 'Tomorrow' : d.toLocaleDateString([], dd < 7 ? { weekday: 'long' } : { month: 'short', day: 'numeric' });
+    return { w: day, t: d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) }; }
+  function renderBoard() {
+    if (!B) return;
+    var el = $('notes'), ns = (B.notes || []).slice().sort(function (a, b) { return b.t - a.t; });
+    el.innerHTML = ns.length ? ns.map(function (n) { return '<div class="notel"><div class="tx"><div>' + esc(n.text) + '</div><small>' + (n.from ? esc(n.from) + ' · ' : '') + agoT(n.t) + '</small></div><button data-del="' + esc(n.id) + '">Remove</button></div>'; }).join('') +
+      (ns.length > 1 ? '<div style="margin-top:6px"><button class="ghost" id="clearN" style="min-height:0;padding:8px 12px;font-size:13px">Clear the board</button></div>' : '') : '';
+    [].forEach.call(el.querySelectorAll('[data-del]'), function (b) { b.onclick = function () { cmd({ c: 'note.del', id: b.getAttribute('data-del') }, 'Removed'); }; });
+    if ($('clearN')) $('clearN').onclick = function () { if (confirm('Remove every note from the board?')) cmd({ c: 'note.clear' }, 'Board cleared'); };
+    $('boardNow').textContent = ns.length ? ns.length + (ns.length === 1 ? ' note' : ' notes') + ' pinned · the board is showing ' + (B.page || '').toLowerCase() : 'Nothing pinned, so the board is showing your teams';
+    var nx = B.next || [];
+    $('next').innerHTML = nx.length ? nx.slice(0, 5).map(function (g) {
+      var w = g.state === 'in' ? '<span class="livec">Live</span><b>' + esc(g.detail) + '</b>' : g.state === 'post' ? 'Final<b>' + esc(g.su) + '–' + esc(g.so) + '</b>' : (function (x) { return esc(x.w) + '<b>' + esc(x.t) + '</b>'; })(whenT(g.d));
+      return '<div class="game"><span class="bar2" style="background:' + g.c + '"></span><div class="w">' + w + '</div><div class="m"><div>' + esc(g.team) + (g.home ? ' vs ' : ' at ') + esc(g.opp) + '</div><small>' + esc(g.lg) + '</small></div>' + (g.state === 'in' && g.su !== '' ? '<span class="sc">' + esc(g.su) + '–' + esc(g.so) + '</span>' : '') + '</div>'; }).join('') : '<p class="sub" style="margin:0">No games found for the next week yet.</p>';
+    var on = B.teams || [];
+    $('chips').innerHTML = (B.catalog || []).map(function (t) { return '<span class="chip' + (on.indexOf(t.k) >= 0 ? ' on' : '') + '" data-k="' + t.k + '"><i style="background:' + t.c + '"></i>' + esc(t.n) + '</span>'; }).join('');
+    [].forEach.call($('chips').children, function (ch) { ch.onclick = function () {
+      var k = ch.getAttribute('data-k'), list = (B.teams || []).slice(), i = list.indexOf(k); if (i >= 0) list.splice(i, 1); else list.push(k);
+      B.teams = list; ch.classList.toggle('on'); cmd({ c: 'teams', list: list }, 'Teams updated'); }; });
+  }
   function renderLog(lines) {
     var el = $('log'), atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
     el.innerHTML = ''; (lines || []).forEach(function (l) { var d = document.createElement('div'); d.textContent = l; el.appendChild(d); });
@@ -344,8 +396,14 @@ dt{color:var(--ink3)}dd{margin:0;text-align:right;color:var(--ink);overflow:hidd
     $('send').onclick = function () {
       var t = $('msg').value.trim(); if (!t) { toast('Write a note first'); return; }
       fromName = $('from').value.trim(); ls('hearthFrom', fromName);
-      if (send({ c: 'msg', text: t, from: fromName, ms: 30000 })) { $('msg').value = ''; toast('Sent to the TV'); } else toast('Not connected yet');
+      if (send({ c: 'msg', text: t, from: fromName, ms: 30000 })) { $('msg').value = ''; toast('Flashed on the TV'); } else toast('Not connected yet');
     };
+    $('pin').onclick = function () {
+      var t = $('msg').value.trim(); if (!t) { toast('Write a note first'); return; }
+      fromName = $('from').value.trim(); ls('hearthFrom', fromName);
+      if (send({ c: 'note.add', text: t, from: fromName })) { $('msg').value = ''; toast('Pinned to the board'); } else toast('Not connected yet');
+    };
+    setInterval(renderBoard, 30000);
     $('forget').onclick = function () { if (confirm('Forget this TV on this phone? You can pair again with the code.')) { ls('hearthKey', null); location.reload(); } };
     document.addEventListener('visibilitychange', function () { if (!document.hidden) { hello(); ping(); } });
   }

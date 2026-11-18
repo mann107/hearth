@@ -2381,7 +2381,7 @@ var qrcode = function() {
                              fallbackMedia: { video: 'media/loop-1080.mp4', music: 'media/music-short.m4a' }, logLine: function () {}, config: {}, log: [] };
   var log = H.logLine || function () {};
   var SCENE = (H.config && H.config.scene) || 'fireplace';
-  var APP_VERSION = '0.2.5';
+  var APP_VERSION = '0.2.6';
   var BOOT = Date.now();
   var REMOTE = H.remote || 'https://mann107.github.io/hearth/';
 
@@ -2622,7 +2622,8 @@ var qrcode = function() {
 
   /* ================= living light ================= */
   var fire = $('firelight'), fl = 0.18;
-  setInterval(function () { fl += (0.12 + Math.random() * 0.16 - fl) * 0.45; fire.style.opacity = fl.toFixed(3); }, 110);
+  var boardEl = $('board');
+  setInterval(function () { fl += (0.12 + Math.random() * 0.16 - fl) * 0.45; fire.style.opacity = fl.toFixed(3); boardEl.style.setProperty('--fire', (0.9 + fl * 0.45).toFixed(3)); }, 110);
   var fxOn = store.get('hearthFx', true);
   function applyFx() { $('fx').className = fxOn ? '' : 'off'; }
   applyFx();
@@ -2827,6 +2828,145 @@ var qrcode = function() {
   var lag = 0, lagT = Date.now();
   setInterval(function () { var n = Date.now(); lag = Math.max(0, n - lagT - 1000); lagT = n; }, 1000);
 
+  /* ================= the board on the chimney: family notes, or your teams when there are none ================= */
+  var TEAMS = {
+    'nba-tor': { n: 'Raptors', p: 'basketball/nba', t: 'tor', sb: 'basketball/nba', c: '#ce1141' },
+    'nhl-tor': { n: 'Maple Leafs', p: 'hockey/nhl', t: 'tor', sb: 'hockey/nhl', c: '#3b6fd6' },
+    'mlb-tor': { n: 'Blue Jays', p: 'baseball/mlb', t: 'tor', sb: 'baseball/mlb', c: '#2a6fd0' },
+    'nfl-buf': { n: 'Bills', p: 'football/nfl', t: 'buf', sb: 'football/nfl', c: '#2f5fd0' },
+    'tfc': { n: 'Toronto FC', p: 'soccer/all', t: '7318', c: '#c8233a' },
+    'mia': { n: 'Inter Miami', p: 'soccer/all', t: '20232', c: '#f7b5cd' },
+    'bar': { n: 'Barcelona', p: 'soccer/all', t: '83', c: '#b5163d' },
+    'arg': { n: 'Argentina', p: 'soccer/all', t: '202', c: '#74acdf' },
+    'can': { n: 'Canada', p: 'soccer/all', t: '206', c: '#ed2224' },
+    'psg': { n: 'PSG', p: 'soccer/all', t: '160', c: '#3a5bbf' },
+    'bay': { n: 'Bayern', p: 'soccer/all', t: '132', c: '#dc052d' },
+    'rma': { n: 'Real Madrid', p: 'soccer/all', t: '86', c: '#e8d9a8' },
+    'liv': { n: 'Liverpool', p: 'soccer/all', t: '364', c: '#d11317' },
+    'ars': { n: 'Arsenal', p: 'soccer/all', t: '359', c: '#e20520' },
+    'mci': { n: 'Man City', p: 'soccer/all', t: '382', c: '#99c5ea' }
+  };
+  var follow = store.get('hearthTeams', ['nba-tor', 'nhl-tor', 'mlb-tor', 'tfc', 'mia', 'bar', 'arg']);
+  var notes = store.get('hearthNotes', []);
+  var games = {}, fetchedAt = {}, ESPN = 'https://site.api.espn.com/apis/site/v2/sports/';
+  function getJSON(url, cb) {
+    var x = new XMLHttpRequest(), done = false, to = setTimeout(function () { if (!done) { done = true; try { x.abort(); } catch (e) {} cb(null); } }, 20000);
+    x.onreadystatechange = function () { if (x.readyState !== 4 || done) return; done = true; clearTimeout(to); var j = null; if (x.status === 200) { try { j = JSON.parse(x.responseText); } catch (e) {} } cb(j); };
+    try { x.open('GET', url, true); x.send(); } catch (e) { done = true; clearTimeout(to); cb(null); }
+  }
+  function score(s) { if (s == null) return ''; if (typeof s === 'object') return s.displayValue != null ? s.displayValue : (s.value != null ? String(s.value) : ''); return String(s); }
+  function norm(e, ourId, ourAbbr) {
+    var c = e.competitions && e.competitions[0]; if (!c || !c.competitors) return null;
+    var us = null, them = null;
+    c.competitors.forEach(function (t) { var tm = t.team || {}; if (String(tm.id) === String(ourId) || (ourAbbr && String(tm.abbreviation).toLowerCase() === ourAbbr)) us = t; else them = t; });
+    if (!us || !them) return null;
+    var st = (c.status || e.status || {}).type || {};
+    return { id: e.id, d: Date.parse(e.date), home: us.homeAway === 'home', opp: (them.team.shortDisplayName || them.team.displayName || them.team.abbreviation),
+             state: st.state || 'pre', detail: st.shortDetail || '', su: score(us.score), so: score(them.score),
+             lg: (e.league && (e.league.abbreviation || e.league.shortName)) || '', slug: (e.league && e.league.slug) || '' };
+  }
+  function fetchTeam(k, done) {
+    var T = TEAMS[k]; if (!T) return done && done();
+    getJSON(ESPN + T.p + '/teams/' + T.t + '/schedule' + (T.p.indexOf('soccer') === 0 ? '?fixture=true' : ''), function (j) {
+      if (j && j.events) {
+        var id = j.team && j.team.id, ab = j.team && j.team.abbreviation && j.team.abbreviation.toLowerCase(), now = Date.now(), list = [];
+        j.events.forEach(function (e) { var g = norm(e, id, ab); if (g && g.d > now - 36 * 3600000 && g.d < now + 8 * 86400000) list.push(g); });
+        games[k] = list; fetchedAt[k] = now;
+      }
+      done && done();
+    });
+  }
+  /* during a game, refresh its score every 90 seconds (league scoreboards are much smaller than team schedules) */
+  function etDate(ms) { var d = new Date(ms - 5 * 3600000); return d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()); }
+  function liveRefresh() {
+    var now = Date.now();
+    follow.forEach(function (k) {
+      var T = TEAMS[k], L = games[k] || [];
+      L.forEach(function (g) {
+        if (g.state === 'post' || now < g.d - 10 * 60000 || now > g.d + 5 * 3600000) return;
+        var sb = T.sb || (g.slug ? 'soccer/' + g.slug : '');
+        if (sb) getJSON(ESPN + sb + '/scoreboard?dates=' + etDate(g.d), function (j) {
+          if (!j || !j.events) return;
+          j.events.forEach(function (e) { if (e.id !== g.id) return; var n = norm(e, T.sb ? null : T.t, T.sb ? T.t : null); if (n) { g.state = n.state; g.detail = n.detail; g.su = n.su; g.so = n.so; renderBoard(); publishBoard(); } });
+        });
+        else fetchTeam(k, renderBoard);
+      });
+    });
+  }
+  var sportsQ = [];
+  function refreshAll() { sportsQ = follow.slice(); (function next() { if (!sportsQ.length) { renderBoard(); publishBoard(); liveRefresh(); return; } fetchTeam(sportsQ.shift(), function () { setTimeout(next, 1500); }); })(); }
+  setTimeout(refreshAll, 8000); setInterval(refreshAll, 3 * 3600000); setInterval(liveRefresh, 90000);
+
+  function when(ms) {
+    var d = new Date(ms), now = new Date(), day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    var dd = Math.floor((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - day0) / 86400000);
+    var h = d.getHours(), t = (((h + 11) % 12) + 1) + (d.getMinutes() ? ':' + pad(d.getMinutes()) : '') + (h < 12 ? ' am' : ' pm');
+    var w = dd === 0 ? (h >= 17 ? 'Tonight' : 'Today') : dd === 1 ? 'Tomorrow' : dd < 7 ? DAYS[d.getDay()].slice(0, 3) : MONTHS[d.getMonth()].slice(0, 3) + ' ' + d.getDate();
+    return { w: w, t: t };
+  }
+  function upcoming() {
+    var now = Date.now(), out = [];
+    follow.forEach(function (k) { (games[k] || []).forEach(function (g) {
+      var live = g.state === 'in', fin = g.state === 'post' && now - g.d < 9 * 3600000, pre = g.state === 'pre' && g.d > now - 3 * 3600000;
+      if (live || fin || pre) out.push({ k: k, g: g, rank: live ? 0 : fin && now - g.d < 4.5 * 3600000 ? 1 : 2 });
+    }); });
+    out.sort(function (a, b) { return a.rank - b.rank || a.g.d - b.g.d; });
+    return out;
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function ago(t) { var m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; }
+  function gameRow(it) {
+    var T = TEAMS[it.k], g = it.g, wt;
+    var lg = esc(g.lg || T.p.split('/')[1].toUpperCase()).replace(/^Men's International Friendly$/, 'Friendly');
+    if (g.state === 'in') wt = '<span class="live">Live · ' + esc(g.detail.replace(/ - /, ' ')) + '</span>';
+    else if (g.state === 'post') wt = 'Final' + (g.su !== '' && g.so !== '' ? (+g.su > +g.so ? ' · Win' : +g.su < +g.so ? ' · Loss' : ' · Draw') : '');
+    else { var w = when(g.d); wt = esc(w.w) + ' · ' + esc(w.t); }
+    wt += '<span class="lg">' + lg + '</span>';
+    var right = g.state !== 'pre' && g.su !== '' ? '<div class="sc">' + esc(g.su) + '<i>–</i>' + esc(g.so) + '</div>' : '';
+    return '<div class="bg"><div class="chip" style="background:' + T.c + '"></div><div class="m"><div class="w">' + wt + '</div><div class="a">' + esc(T.n) + '</div><div class="s">' + (g.home ? 'vs ' : 'at ') + esc(g.opp) + '</div></div>' + right + '</div>';
+  }
+  var pages = [], pageI = 0, pageT = null, lastSig = '';
+  function buildPages() {
+    var P = [], ups = upcoming(), live = ups.filter(function (x) { return x.g.state === 'in'; });
+    var ns = notes.slice().sort(function (a, b) { return b.t - a.t; });
+    for (var i = 0; i < ns.length;) {
+      var a = ns[i], b = ns[i + 1], pair = b && a.text.length + b.text.length < 90;
+      var body = [a].concat(pair ? [b] : []).map(function (n) { return '<div class="bn' + (pair ? '' : ' one') + '"><div class="t">' + esc(n.text) + '</div><div class="f">' + (n.from ? esc(n.from) + ' · ' : '') + ago(n.t) + '</div></div>'; }).join('');
+      P.push({ k: 'Family board', h: body }); i += pair ? 2 : 1;
+    }
+    if (ns.length) { if (live.length) P.push({ k: 'Live now', h: live.slice(0, 2).map(gameRow).join('') }); }
+    else if (ups.length) {
+      for (var j = 0; j < Math.min(ups.length, 6); j += 2) P.push({ k: ups[j].g.state === 'in' ? 'Live now' : j ? 'Coming up' : 'Up next', h: ups.slice(j, j + 2).map(gameRow).join('') });
+    } else P.push({ k: 'Family board', h: '<div class="bempty"><div class="t">Nothing on the board</div><div class="f">Pin a note from your phone</div></div>' });
+    return P;
+  }
+  function renderBoard(advance) {
+    var P = buildPages(), sig = JSON.stringify(P);
+    if (!advance && sig === lastSig) return;
+    var changed = sig !== lastSig; lastSig = sig; pages = P;
+    if (advance) pageI = (pageI + 1) % pages.length; else if (pageI >= pages.length || pageI < 0) pageI = 0;
+    var body = $('bBody'), pg = pages[pageI];
+    function put() { body.innerHTML = pg.h; $('bKicker').textContent = pg.k;
+      $('bDots').innerHTML = pages.length > 1 ? pages.map(function (x, i) { return '<i' + (i === pageI ? ' class="on"' : '') + '></i>'; }).join('') : ''; body.className = ''; }
+    if (advance || changed) { body.className = 'fade'; setTimeout(put, 700); } else put();
+  }
+  setInterval(function () { if (pages.length > 1) renderBoard(true); }, 12000);
+  setInterval(function () { renderBoard(false); }, 60000);   // keeps "Tonight", "5 min ago" and live states fresh
+  renderBoard(false);
+  function saveNotes() { store.set('hearthNotes', notes); renderBoard(false); publishBoard(); }
+  function addNote(text, from) {
+    text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 140); if (!text) return;
+    notes.push({ id: Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), text: text, from: String(from || '').slice(0, 24), t: Date.now() });
+    if (notes.length > 40) notes.shift();
+    pageI = 0; saveNotes();
+  }
+  function boardState() {
+    return { notes: notes, teams: follow, catalog: Object.keys(TEAMS).map(function (k) { return { k: k, n: TEAMS[k].n, c: TEAMS[k].c }; }),
+             next: upcoming().slice(0, 8).map(function (x) { var g = x.g; return { team: TEAMS[x.k].n, c: TEAMS[x.k].c, opp: g.opp, home: g.home, d: g.d, state: g.state, detail: g.detail, su: g.su, so: g.so, lg: g.lg }; }),
+             page: pages[pageI] ? pages[pageI].k : '' };
+  }
+  var publishBoard = function () {};
+
   /* ================= phone remote / admin link =================
      Live status goes to a private channel on a public MQTT relay; the channel name is a random key that only
      exists on this TV and on phones that scanned its code. Nothing personal is sent – just what's playing and how it's running. */
@@ -2854,7 +2994,7 @@ var qrcode = function() {
         onSuccess: function () {
           link.up = true; link.tries = 0; link.host = B.host; link.since = Date.now(); log('phone remote online via ' + B.host);
           c.subscribe(BASE + 'cmd', { qos: 0 });
-          pub('online', 'online', true); publishState(true); publishLog(true);
+          pub('online', 'online', true); publishState(true); publishLog(true); publishBoard();
         },
         onFailure: function (e) { link.up = false; log('phone remote: could not reach ' + B.host + (e && e.errorMessage ? ' (' + e.errorMessage + ')' : '')); link.bi++; retry(); } });
     } catch (e) { log('phone remote: ' + e.message); link.bi++; retry(); }
@@ -2896,13 +3036,14 @@ var qrcode = function() {
     if (!force && (sig === lastLogLen || Date.now() - lastLogPub < 3000)) return;
     lastLogLen = sig; lastLogPub = Date.now(); pub('log', L.slice(-60), true);
   }
+  publishBoard = function () { pub('board', boardState(), true); };
   setInterval(function () { publishState(false); publishLog(false); }, 1000);
   function command(c) {
     if (!c || !c.c) return;
     link.cmds++;
     if (c.c !== 'hello' && c.c !== 'ping') log('phone: ' + c.c);
     switch (c.c) {
-      case 'hello': link.lastAdmin = Date.now(); if (!store.get('hearthPaired', false)) { store.set('hearthPaired', true); hidePairing(); toast('Phone connected', 3000); } publishState(true); break;
+      case 'hello': link.lastAdmin = Date.now(); publishBoard(); if (!store.get('hearthPaired', false)) { store.set('hearthPaired', true); hidePairing(); toast('Phone connected', 3000); } publishState(true); break;
       case 'ping': pub('ack', { pong: c.id, t: Date.now() }); break;
       case 'vol': setVolume(+c.v); break;
       case 'music': setPaused(!c.on); break;
@@ -2914,6 +3055,10 @@ var qrcode = function() {
       case 'overlay': showOverlay(60000); break;
       case 'msg': if (c.text) note(String(c.from || '').slice(0, 30), String(c.text).slice(0, 160), c.ms); break;
       case 'pair': showPairing(60000); break;
+      case 'note.add': addNote(c.text, c.from); toast('New note on the board', 2500); break;
+      case 'note.del': notes = notes.filter(function (n) { return n.id !== c.id; }); saveNotes(); break;
+      case 'note.clear': notes = []; saveNotes(); break;
+      case 'teams': if (c.list && c.list.length !== undefined) { follow = c.list.filter(function (k) { return TEAMS[k]; }); store.set('hearthTeams', follow); refreshAll(); } break;
       case 'reload': pub('ack', { reloading: true }); setTimeout(function () { location.reload(); }, 600); break;
     }
     setTimeout(function () { publishState(true); }, 300);

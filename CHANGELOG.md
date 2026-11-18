@@ -2,6 +2,12 @@
 
 Versioning: small updates and fixes go up by 0.01, very large feature batches by 0.1, until the 1.0 release.
 
+## Beta 0.2.6
+- New board on the chimney: a framed screen hung on the stone above the wreath, lit by the fire like the rest of the room
+- Pin as many notes as you like from the phone; they rotate on the board, newest first, and stay until removed
+- When nothing is pinned, the board shows your teams: live scores, results, and what's next (Raptors, Leafs, Blue Jays, TFC, Inter Miami, Barcelona, Argentina by default; change them on the phone). If a team is live while notes are up, the board alternates
+- Admin page: pin/remove notes, see what's coming up, pick your teams
+
 ## Beta 0.2.5
 - Stockings redone: each name is now stitched across a white fur cuff and baked into every frame of the fire video, so it moves exactly with its stocking (no more drift or sticker look). The garland ribbon still hangs in front of Gureet's stocking.
 - The TV downloads the new 4K video from GitHub by itself and keeps it in its own storage; no USB step
