@@ -147,10 +147,19 @@ dt{color:var(--ink3)}dd{margin:0;text-align:right;color:var(--ink);overflow:hidd
     </section>
 
     <section class="card">
-      <h2>Your teams</h2>
+      <h2>Sports on the board</h2>
       <div id="next"></div>
-      <div class="chips" id="chips"></div>
-      <p class="sub" style="margin:12px 0 0">When nothing is pinned, the board shows these teams' games: live scores, results and what's next.</p>
+      <h2 style="margin-top:18px">Competitions</h2>
+      <div class="chips" id="comps"></div>
+      <h2 style="margin-top:18px">Favourite teams <span style="text-transform:none;letter-spacing:0;font-weight:500">· always shown</span></h2>
+      <div class="chips" id="favs"></div>
+      <p class="sub" style="margin:12px 0 0">Live games come first, then today's and tomorrow's biggest. NHL shows the Canadian teams (Leafs first); soccer shows the big clubs' matches.</p>
+    </section>
+
+    <section class="card">
+      <h2>World news ticker</h2>
+      <div id="news"></div>
+      <p class="sub" style="margin:10px 0 0">Only war, strikes, bombings and attacks from the last 8 hours (NYT, BBC, Al Jazeera, Guardian). Hidden when there's nothing.</p>
     </section>
 
     <section class="card">
@@ -363,16 +372,21 @@ dt{color:var(--ink3)}dd{margin:0;text-align:right;color:var(--ink);overflow:hidd
       (ns.length > 1 ? '<div style="margin-top:6px"><button class="ghost" id="clearN" style="min-height:0;padding:8px 12px;font-size:13px">Clear the board</button></div>' : '') : '';
     [].forEach.call(el.querySelectorAll('[data-del]'), function (b) { b.onclick = function () { cmd({ c: 'note.del', id: b.getAttribute('data-del') }, 'Removed'); }; });
     if ($('clearN')) $('clearN').onclick = function () { if (confirm('Remove every note from the board?')) cmd({ c: 'note.clear' }, 'Board cleared'); };
-    $('boardNow').textContent = ns.length ? ns.length + (ns.length === 1 ? ' note' : ' notes') + ' pinned · the board is showing ' + (B.page || '').toLowerCase() : 'Nothing pinned, so the board is showing your teams';
+    $('boardNow').textContent = (ns.length ? ns.length + (ns.length === 1 ? ' note' : ' notes') + ' pinned' : 'No notes pinned') + ' · the board is showing ' + (B.page === 'off' ? 'nothing (screen resting)' : (B.page || '…').toLowerCase());
     var nx = B.next || [];
     $('next').innerHTML = nx.length ? nx.slice(0, 5).map(function (g) {
       var w = g.state === 'in' ? '<span class="livec">Live</span><b>' + esc(g.detail) + '</b>' : g.state === 'post' ? 'Final<b>' + esc(g.su) + '–' + esc(g.so) + '</b>' : (function (x) { return esc(x.w) + '<b>' + esc(x.t) + '</b>'; })(whenT(g.d));
       return '<div class="game"><span class="bar2" style="background:' + g.c + '"></span><div class="w">' + w + '</div><div class="m"><div>' + esc(g.team) + (g.home ? ' vs ' : ' at ') + esc(g.opp) + '</div><small>' + esc(g.lg) + '</small></div>' + (g.state === 'in' && g.su !== '' ? '<span class="sc">' + esc(g.su) + '–' + esc(g.so) + '</span>' : '') + '</div>'; }).join('') : '<p class="sub" style="margin:0">No games found for the next week yet.</p>';
-    var on = B.teams || [];
-    $('chips').innerHTML = (B.catalog || []).map(function (t) { return '<span class="chip' + (on.indexOf(t.k) >= 0 ? ' on' : '') + '" data-k="' + t.k + '"><i style="background:' + t.c + '"></i>' + esc(t.n) + '</span>'; }).join('');
-    [].forEach.call($('chips').children, function (ch) { ch.onclick = function () {
-      var k = ch.getAttribute('data-k'), list = (B.teams || []).slice(), i = list.indexOf(k); if (i >= 0) list.splice(i, 1); else list.push(k);
-      B.teams = list; ch.classList.toggle('on'); cmd({ c: 'teams', list: list }, 'Teams updated'); }; });
+    var sp = B.sports || { comps: [], favs: [] };
+    function chips(id, cat, list, key) {
+      $(id).innerHTML = (cat || []).map(function (t) { return '<span class="chip' + (list.indexOf(t.k) >= 0 ? ' on' : '') + '" data-k="' + t.k + '"><i style="background:var(--gold)"></i>' + esc(t.n) + '</span>'; }).join('');
+      [].forEach.call($(id).children, function (ch) { ch.onclick = function () {
+        var k = ch.getAttribute('data-k'), L = (sp[key] || []).slice(), i = L.indexOf(k); if (i >= 0) L.splice(i, 1); else L.push(k);
+        sp[key] = L; ch.classList.toggle('on'); cmd({ c: 'sports', comps: sp.comps, favs: sp.favs }, 'Board updated'); }; });
+    }
+    chips('comps', B.compsCat, sp.comps || [], 'comps'); chips('favs', B.favsCat, sp.favs || [], 'favs');
+    var nw = B.news || [];
+    $('news').innerHTML = nw.length ? nw.map(function (x) { return '<div class="notel"><div class="tx"><div style="font-size:15px">' + esc(x.t) + '</div><small>' + esc(x.src) + ' · ' + agoT(x.d) + '</small></div></div>'; }).join('') : '<p class="sub" style="margin:0">Nothing serious right now, so the ticker is hidden.</p>';
   }
   function renderLog(lines) {
     var el = $('log'), atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;

@@ -5,7 +5,7 @@
                              fallbackMedia: { video: 'media/loop-1080.mp4', music: 'media/music-short.m4a' }, logLine: function () {}, config: {}, log: [] };
   var log = H.logLine || function () {};
   var SCENE = (H.config && H.config.scene) || 'fireplace';
-  var APP_VERSION = '0.2.8';
+  var APP_VERSION = '0.2.9';
   var BOOT = Date.now();
   var REMOTE = H.remote || 'https://mann107.github.io/hearth/';
 
@@ -466,130 +466,240 @@
   var lag = 0, lagT = Date.now();
   setInterval(function () { var n = Date.now(); lag = Math.max(0, n - lagT - 1000); lagT = n; }, 1000);
 
-  /* ================= the board on the chimney: family notes, or your teams when there are none ================= */
-  var TEAMS = {
-    'nba-tor': { n: 'Raptors', p: 'basketball/nba', t: 'tor', sb: 'basketball/nba', c: '#ce1141' },
-    'nhl-tor': { n: 'Maple Leafs', p: 'hockey/nhl', t: 'tor', sb: 'hockey/nhl', c: '#3b6fd6' },
-    'mlb-tor': { n: 'Blue Jays', p: 'baseball/mlb', t: 'tor', sb: 'baseball/mlb', c: '#2a6fd0' },
-    'nfl-buf': { n: 'Bills', p: 'football/nfl', t: 'buf', sb: 'football/nfl', c: '#2f5fd0' },
-    'tfc': { n: 'Toronto FC', p: 'soccer/all', t: '7318', c: '#c8233a' },
-    'mia': { n: 'Inter Miami', p: 'soccer/all', t: '20232', c: '#f7b5cd' },
-    'bar': { n: 'Barcelona', p: 'soccer/all', t: '83', c: '#b5163d' },
-    'arg': { n: 'Argentina', p: 'soccer/all', t: '202', c: '#74acdf' },
-    'can': { n: 'Canada', p: 'soccer/all', t: '206', c: '#ed2224' },
-    'psg': { n: 'PSG', p: 'soccer/all', t: '160', c: '#3a5bbf' },
-    'bay': { n: 'Bayern', p: 'soccer/all', t: '132', c: '#dc052d' },
-    'rma': { n: 'Real Madrid', p: 'soccer/all', t: '86', c: '#e8d9a8' },
-    'liv': { n: 'Liverpool', p: 'soccer/all', t: '364', c: '#d11317' },
-    'ars': { n: 'Arsenal', p: 'soccer/all', t: '359', c: '#e20520' },
-    'mci': { n: 'Man City', p: 'soccer/all', t: '382', c: '#99c5ea' }
+  /* ================= the board on the chimney =================
+     Priority, top to bottom: family notes (only when there is one) → live games → today's and tomorrow's big games →
+     Brampton weather when there's nothing else. A thin ticker along the bottom carries only the most serious world
+     news (war, strikes, bombings, attacks); it disappears when there's none. */
+  var ESPN = 'https://site.api.espn.com/apis/site/v2/sports/';
+  var COMPS = {
+    nhl: { n: 'NHL', path: 'hockey/nhl', base: 40, c: '#8fb8e8', days: 2 },
+    epl: { n: 'Premier League', path: 'soccer/eng.1', base: 30, c: '#b48ad6', days: 4 },
+    ucl: { n: 'Champions League', path: 'soccer/uefa.champions', base: 36, c: '#6f8ff0', days: 4 },
+    ccl: { n: 'CONCACAF', path: 'soccer/concacaf.champions', base: 24, c: '#4fb3a6', days: 3 },
+    cnl: { n: 'CONCACAF', path: 'soccer/concacaf.nations.league', base: 24, c: '#4fb3a6', days: 3, dflt: true },
+    gold: { n: 'Gold Cup', path: 'soccer/concacaf.gold', base: 26, c: '#d9b45a', days: 3, dflt: true }
   };
-  var follow = store.get('hearthTeams', ['nba-tor', 'nhl-tor', 'mlb-tor', 'tfc', 'mia', 'bar', 'arg']);
+  var CANADA_NHL = { TOR: 12, OTT: 6, MTL: 6, WPG: 6, EDM: 6, CGY: 5, VAN: 5 };         // Leafs first, then the rest of Canada
+  var BIG = ['Arsenal', 'Manchester City', 'Liverpool', 'Chelsea', 'Manchester United', 'Tottenham Hotspur', 'Newcastle United', 'Aston Villa',
+             'Real Madrid', 'Barcelona', 'Bayern Munich', 'Paris Saint-Germain', 'Internazionale', 'Juventus', 'AC Milan', 'Borussia Dortmund', 'Atletico Madrid'];
+  var CONCACAF_MAIN = /Canada|United States|USA|Mexico|Toronto|Vancouver|Montr[eé]al|Inter Miami|LAFC|LA Galaxy|Club Am[eé]rica|Monterrey|Tigres|Cruz Azul|Chivas|Guadalajara|Seattle|Columbus/i;
+  var settings = store.get('hearthSports', { comps: ['nhl', 'epl', 'ucl', 'ccl'], favs: [] });
+  if (!settings.comps) settings = { comps: ['nhl', 'epl', 'ucl', 'ccl'], favs: [] };
+  var FAVS = {
+    bar: { n: 'Barcelona', id: '83' }, arg: { n: 'Argentina', id: '202' }, mia: { n: 'Inter Miami', id: '20232' }, can: { n: 'Canada', id: '206' },
+    tfc: { n: 'Toronto FC', id: '7318' }, rma: { n: 'Real Madrid', id: '86' }, psg: { n: 'PSG', id: '160' }, bay: { n: 'Bayern', id: '132' }
+  };
   var notes = store.get('hearthNotes', []);
-  var games = {}, fetchedAt = {}, ESPN = 'https://site.api.espn.com/apis/site/v2/sports/';
+  var gamesByComp = {}, favGames = {}, weather = null, news = [], dataReady = false;
+
   function getJSON(url, cb) {
     var x = new XMLHttpRequest(), done = false, to = setTimeout(function () { if (!done) { done = true; try { x.abort(); } catch (e) {} cb(null); } }, 20000);
-    x.onreadystatechange = function () { if (x.readyState !== 4 || done) return; done = true; clearTimeout(to); var j = null; if (x.status === 200) { try { j = JSON.parse(x.responseText); } catch (e) {} } cb(j); };
+    x.onreadystatechange = function () { if (x.readyState !== 4 || done) return; done = true; clearTimeout(to); var j = null; if (x.status === 200) { try { j = JSON.parse(x.responseText); } catch (e) {} } cb(j, x); };
     try { x.open('GET', url, true); x.send(); } catch (e) { done = true; clearTimeout(to); cb(null); }
   }
   function score(s) { if (s == null) return ''; if (typeof s === 'object') return s.displayValue != null ? s.displayValue : (s.value != null ? String(s.value) : ''); return String(s); }
-  function norm(e, ourId, ourAbbr) {
-    var c = e.competitions && e.competitions[0]; if (!c || !c.competitors) return null;
-    var us = null, them = null;
-    c.competitors.forEach(function (t) { var tm = t.team || {}; if (String(tm.id) === String(ourId) || (ourAbbr && String(tm.abbreviation).toLowerCase() === ourAbbr)) us = t; else them = t; });
-    if (!us || !them) return null;
-    var st = (c.status || e.status || {}).type || {};
-    return { id: e.id, d: Date.parse(e.date), home: us.homeAway === 'home', opp: (them.team.shortDisplayName || them.team.displayName || them.team.abbreviation),
-             state: st.state || 'pre', detail: st.shortDetail || '', su: score(us.score), so: score(them.score),
-             lg: (e.league && (e.league.abbreviation || e.league.shortName)) || '', slug: (e.league && e.league.slug) || '' };
+  function ymd(ms) { var d = new Date(ms); return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); }
+
+  /* one game, scored for how much this family cares about it */
+  function parseGame(e, ck, favKey) {
+    var c = e.competitions && e.competitions[0]; if (!c || !c.competitors || c.competitors.length < 2) return null;
+    var home = null, away = null;
+    c.competitors.forEach(function (t) { if (t.homeAway === 'home') home = t; else away = t; });
+    if (!home || !away) { home = c.competitors[0]; away = c.competitors[1]; }
+    var st = (c.status || e.status || {}).type || {}, C = COMPS[ck] || { n: '', base: 28, c: '#d9b45a' };
+    var hn = home.team.displayName || '', an = away.team.displayName || '';
+    var g = { id: e.id, d: Date.parse(e.date), comp: ck, lg: (favKey && e.league && e.league.abbreviation) || C.n, c: C.c,
+              state: st.state || 'pre', detail: st.shortDetail || '',
+              h: { n: home.team.shortDisplayName || hn, full: hn, ab: home.team.abbreviation, s: score(home.score) },
+              a: { n: away.team.shortDisplayName || an, full: an, ab: away.team.abbreviation, s: score(away.score) }, w: C.base, star: 'h' };
+    if (ck === 'nhl') {
+      var bh = CANADA_NHL[g.h.ab] || 0, ba = CANADA_NHL[g.a.ab] || 0;
+      if (!bh && !ba) return null;                                                   // NHL: Canadian teams only
+      g.w += Math.max(bh, ba) + (bh && ba ? 8 : 0); g.star = bh >= ba ? 'h' : 'a';
+    } else if (ck === 'ccl' || ck === 'cnl' || ck === 'gold') {
+      var mh = CONCACAF_MAIN.test(hn), ma = CONCACAF_MAIN.test(an);
+      if (!mh && !ma) return null;                                                   // only the main CONCACAF sides
+      g.w += (/Canada|Toronto|Vancouver|Montr/i.test(hn + an) ? 12 : 0); g.star = mh || !ma ? 'h' : 'a';
+    } else if (ck === 'epl' || ck === 'ucl') {
+      var kh = BIG.indexOf(hn) >= 0, ka = BIG.indexOf(an) >= 0;
+      g.w += (kh ? 6 : 0) + (ka ? 6 : 0) + (kh && ka ? 8 : 0); g.star = kh || !ka ? 'h' : 'a';
+    }
+    if (favKey) { g.w += 30; g.star = String(away.team.id) === FAVS[favKey].id ? 'a' : 'h'; }
+    return g;
   }
-  function fetchTeam(k, done) {
-    var T = TEAMS[k]; if (!T) return done && done();
-    getJSON(ESPN + T.p + '/teams/' + T.t + '/schedule' + (T.p.indexOf('soccer') === 0 ? '?fixture=true' : ''), function (j) {
-      if (j && j.events) {
-        var id = j.team && j.team.id, ab = j.team && j.team.abbreviation && j.team.abbreviation.toLowerCase(), now = Date.now(), list = [];
-        j.events.forEach(function (e) { var g = norm(e, id, ab); if (g && g.d > now - 36 * 3600000 && g.d < now + 8 * 86400000) list.push(g); });
-        games[k] = list; fetchedAt[k] = now;
-      }
+  function loadComp(ck, done) {
+    var C = COMPS[ck], urls = [], out = {}, left;
+    if (C.dflt) urls.push(ESPN + C.path + '/scoreboard');
+    for (var i = 0; i < C.days; i++) urls.push(ESPN + C.path + '/scoreboard?dates=' + ymd(Date.now() + i * 86400000));
+    if (ck !== 'nhl') urls.push(ESPN + C.path + '/scoreboard?dates=' + ymd(Date.now() - 86400000));   // last night's results
+    left = urls.length;
+    urls.forEach(function (u, k) {
+      setTimeout(function () {
+        getJSON(u, function (j) {
+          if (j && j.events) j.events.forEach(function (e) { var g = parseGame(e, ck); if (g) out[g.id] = g; });
+          if (--left === 0) { gamesByComp[ck] = Object.keys(out).map(function (id) { return out[id]; }); done && done(); }
+        });
+      }, k * 700);
+    });
+  }
+  function loadFav(fk, done) {
+    var F = FAVS[fk]; if (!F) return done && done();
+    getJSON(ESPN + 'soccer/all/teams/' + F.id + '/schedule?fixture=true', function (j) {
+      if (j && j.events) { var now = Date.now(); favGames[fk] = j.events.map(function (e) { return parseGame(e, 'fav', fk); }).filter(function (g) { return g && g.d > now - 86400000 && g.d < now + 5 * 86400000; }); }
       done && done();
     });
   }
-  /* during a game, refresh its score every 90 seconds (league scoreboards are much smaller than team schedules) */
-  function etDate(ms) { var d = new Date(ms - 5 * 3600000); return d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()); }
-  function liveRefresh() {
-    var now = Date.now();
-    follow.forEach(function (k) {
-      var T = TEAMS[k], L = games[k] || [];
-      L.forEach(function (g) {
-        if (g.state === 'post' || now < g.d - 10 * 60000 || now > g.d + 5 * 3600000) return;
-        var sb = T.sb || (g.slug ? 'soccer/' + g.slug : '');
-        if (sb) getJSON(ESPN + sb + '/scoreboard?dates=' + etDate(g.d), function (j) {
-          if (!j || !j.events) return;
-          j.events.forEach(function (e) { if (e.id !== g.id) return; var n = norm(e, T.sb ? null : T.t, T.sb ? T.t : null); if (n) { g.state = n.state; g.detail = n.detail; g.su = n.su; g.so = n.so; renderBoard(); publishBoard(); } });
-        });
-        else fetchTeam(k, renderBoard);
+  function refreshSports() {
+    var jobs = [];
+    settings.comps.forEach(function (ck) { if (COMPS[ck]) jobs.push(function (n) { loadComp(ck, n); }); if (ck === 'ccl') { jobs.push(function (n) { loadComp('cnl', n); }); jobs.push(function (n) { loadComp('gold', n); }); } });
+    (settings.favs || []).forEach(function (fk) { jobs.push(function (n) { loadFav(fk, n); }); });
+    Object.keys(gamesByComp).forEach(function (k) { if (settings.comps.indexOf(k) < 0 && !(settings.comps.indexOf('ccl') >= 0 && (k === 'cnl' || k === 'gold'))) delete gamesByComp[k]; });
+    Object.keys(favGames).forEach(function (k) { if ((settings.favs || []).indexOf(k) < 0) delete favGames[k]; });
+    (function next() { if (!jobs.length) { dataReady = true; renderBoard(); publishBoard(); return; } jobs.shift()(function () { setTimeout(next, 800); }); })();
+  }
+  /* live games: refresh just that day's scoreboard every 60 s */
+  function liveTick() {
+    var now = Date.now(), seen = {};
+    allGames().forEach(function (g) {
+      if (g.state === 'post' || now < g.d - 5 * 60000 || now > g.d + 4 * 3600000 || !COMPS[g.comp]) return;
+      var u = ESPN + COMPS[g.comp].path + '/scoreboard?dates=' + ymd(g.d); if (seen[u]) return; seen[u] = 1;
+      getJSON(u, function (j) {
+        if (!j || !j.events) return;
+        j.events.forEach(function (e) { var n = parseGame(e, g.comp); if (!n) return; allGames().forEach(function (o) { if (o.id === n.id) { o.state = n.state; o.detail = n.detail; o.h.s = n.h.s; o.a.s = n.a.s; } }); });
+        renderBoard(); publishBoard();
       });
     });
   }
-  var sportsQ = [];
-  function refreshAll() { sportsQ = follow.slice(); (function next() { if (!sportsQ.length) { renderBoard(); publishBoard(); liveRefresh(); return; } fetchTeam(sportsQ.shift(), function () { setTimeout(next, 1500); }); })(); }
-  setTimeout(refreshAll, 8000); setInterval(refreshAll, 3 * 3600000); setInterval(liveRefresh, 90000);
+  function allGames() {
+    var L = [], ids = {};
+    Object.keys(gamesByComp).forEach(function (k) { gamesByComp[k].forEach(function (g) { if (!ids[g.id]) { ids[g.id] = 1; L.push(g); } }); });
+    Object.keys(favGames).forEach(function (k) { favGames[k].forEach(function (g) { if (!ids[g.id]) { ids[g.id] = 1; L.push(g); } else L.forEach(function (o) { if (o.id === g.id) o.w = Math.max(o.w, g.w); }); }); });
+    return L;
+  }
+  function ranked() {
+    var now = Date.now(), day0 = new Date(new Date().setHours(0, 0, 0, 0)).getTime(), out = [];
+    allGames().forEach(function (g) {
+      var live = g.state === 'in', fin = g.state === 'post' && now - g.d < 5 * 3600000 && now - g.d > 0, pre = g.state === 'pre' && g.d > now - 2 * 3600000 && g.d < now + 72 * 3600000;
+      if (!(live || fin || pre)) return;
+      var bucket = live ? 0 : fin ? 1 : g.d < day0 + 86400000 ? 2 : g.d < day0 + 2 * 86400000 ? 3 : 4;
+      if (bucket === 4 && g.w < 46) return;                                          // further out: only the biggest games
+      out.push({ g: g, b: bucket });
+    });
+    out.sort(function (x, y) { return x.b - y.b || y.g.w - x.g.w || x.g.d - y.g.d; });
+    return out.slice(0, 6).map(function (x) { return x.g; });
+  }
+  setTimeout(refreshSports, 5000); setInterval(refreshSports, 2 * 3600000); setInterval(liveTick, 60000);
 
+  /* weather for the quiet times (Open-Meteo, no key needed) */
+  var WMO = { 0: 'Clear', 1: 'Mostly clear', 2: 'Partly cloudy', 3: 'Cloudy', 45: 'Fog', 48: 'Fog', 51: 'Drizzle', 53: 'Drizzle', 55: 'Drizzle', 56: 'Freezing drizzle', 57: 'Freezing drizzle',
+              61: 'Light rain', 63: 'Rain', 65: 'Heavy rain', 66: 'Freezing rain', 67: 'Freezing rain', 71: 'Light snow', 73: 'Snow', 75: 'Heavy snow', 77: 'Snow grains',
+              80: 'Showers', 81: 'Showers', 82: 'Heavy showers', 85: 'Snow showers', 86: 'Snow showers', 95: 'Thunderstorms', 96: 'Thunderstorms', 99: 'Thunderstorms' };
+  function loadWeather() {
+    getJSON('https://api.open-meteo.com/v1/forecast?latitude=' + BRAMPTON.lat + '&longitude=' + BRAMPTON.lon + '&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=America%2FToronto&forecast_days=2', function (j) {
+      if (j && j.current) { weather = { t: Math.round(j.current.temperature_2m), w: WMO[j.current.weather_code] || '', lo: Math.round(j.daily.temperature_2m_min[0]), hi1: Math.round(j.daily.temperature_2m_max[1]), w1: WMO[j.daily.weather_code[1]] || '' }; renderBoard(); }
+    });
+  }
+  setTimeout(loadWeather, 3000); setInterval(loadWeather, 30 * 60000);
+
+  /* ticker: only the most serious world news */
+  var FEEDS = ['https://rss.nytimes.com/services/xml/rss/nyt/World.xml', 'https://feeds.bbci.co.uk/news/world/rss.xml', 'https://www.aljazeera.com/xml/rss/all.xml', 'https://www.theguardian.com/world/rss'];
+  var HOT = /\b(air ?strikes?|missiles?|ballistic|bombs?|bombed|bombings?|explosions?|blasts?|drone (?:strikes?|attacks?)|shelling|invasion|invades?|invaded|nuclear|hostages?|rockets?|terror(?:ist|ism)?|suicide bomber|gunmen|massacre|ceasefire|truce|war|warplanes?|troops|militants?|attacks?|killed)\b/i;
+  var STRONG = /\b(air ?strikes?|missiles?|ballistic|bombs?|bombed|bombings?|explosions?|blasts?|drone (?:strikes?|attacks?)|shelling|invasion|invades?|invaded|nuclear|terror(?:ist|ism)? attack|suicide bomber|massacre|warplanes?)\b/i;
+  var COLD = /\b(price war|trade war|culture war|star wars|war of words|war chest|cold war-era|film|movie|series|novel|book|review|museum|exhibition|anniversary|memorial|remembrance|veterans?|football|soccer|cricket|rugby|tennis|olympic|award|recipe|fashion|podcast|quiz|opinion|interview|explainer|what we know|analysis|photos?:|in pictures|crossword|obituary)\b/i;
+  var STATE = /\b(russia|russian|ukraine|ukrainian|kyiv|moscow|crimea|iran|iranian|tehran|israel|israeli|gaza|lebanon|hezbollah|hamas|houthis?|yemen|syria|u\.s\.|pentagon|nato|china|chinese|taiwan|north korea|pakistan|india|bahrain|kuwait|qatar|saudi)\b/i;
+  var ACT = /\b(attacks?|attacked|strikes?|struck|hit|hits|bombard\w*|shell\w*|fired|launch(?:es|ed)?|intercept\w*)\b/i;
+  var SOFT = /\b(trial|sentenc\w*|convict\w*|court|lawsuit|sues?|whistleblower|claims?|plot|could.ve|could have|how the|why|what|explainer|proof|lessons|inquiry|probe|keeping it|rainy day)\b/i;
+  function newsScore(t) {
+    if (!HOT.test(t) || COLD.test(t)) return 0;
+    var s = 1; if (STRONG.test(t)) s += 3; if (STATE.test(t) && ACT.test(t)) s += 3; if (/\b(killed|dead|deaths?)\b/i.test(t)) s += 1; if (SOFT.test(t)) s -= 5;
+    return s;
+  }
+  function loadNews() {
+    var got = [], left = FEEDS.length;
+    FEEDS.forEach(function (u) {
+      var x = new XMLHttpRequest(), done = false, to = setTimeout(function () { finish(); }, 15000);
+      function finish() { if (done) return; done = true; clearTimeout(to); if (--left === 0) settle(); }
+      x.onreadystatechange = function () {
+        if (x.readyState !== 4) return;
+        try {
+          var doc = x.responseXML || (new DOMParser()).parseFromString(x.responseText, 'text/xml'), items = doc.getElementsByTagName('item');
+          for (var i = 0; i < items.length && i < 60; i++) {
+            var t = (items[i].getElementsByTagName('title')[0] || {}).textContent || '', p = (items[i].getElementsByTagName('pubDate')[0] || {}).textContent || '';
+            var when = Date.parse(p) || 0; t = t.replace(/\s+/g, ' ').trim().replace(/^[^:]{0,24}\blive:\s*/i, '');
+            if (t && when && Date.now() - when < 8 * 3600000) { var s = newsScore(t); if (s >= 3) got.push({ t: t, d: when, s: s, src: u.indexOf('nytimes') > 0 ? 'NYT' : u.indexOf('bbc') > 0 ? 'BBC' : u.indexOf('aljazeera') > 0 ? 'Al Jazeera' : 'Guardian' }); }
+          }
+        } catch (e) {}
+        finish();
+      };
+      try { x.open('GET', u, true); x.send(); } catch (e) { finish(); }
+    });
+    function settle() {
+      got.sort(function (a, b) { return b.s - a.s || b.d - a.d; });
+      var seen = [], out = [];
+      got.forEach(function (n) { var k = n.t.toLowerCase().replace(/[^a-z ]/g, '').split(' ').filter(function (w) { return w.length > 3; }).slice(0, 5);
+        if (seen.some(function (s) { var c = 0; k.forEach(function (w) { if (s.indexOf(w) >= 0) c++; }); return c >= 3; })) return; seen.push(k); out.push(n); });
+      news = out.slice(0, 3); renderTicker(); publishBoard();
+    }
+  }
+  setTimeout(loadNews, 7000); setInterval(loadNews, 10 * 60000);
+  var tickSig = '';
+  function renderTicker() {
+    var sig = news.map(function (n) { return n.t; }).join('|'); if (sig === tickSig) return; tickSig = sig;
+    var el = $('bTick'), run = $('bTickRun');
+    if (!news.length) { el.className = ''; $('bScreen').className = ''; return; }
+    var txt = news.map(function (n) { return esc(n.t) + ' <span class="src">' + n.src + '</span>'; }).join('<i></i>');
+    run.innerHTML = '<span>' + txt + '<i></i></span><span>' + txt + '<i></i></span>';
+    el.className = 'on'; $('bScreen').className = 'tick';
+    setTimeout(function () { var w = run.firstChild.offsetWidth; run.style.animationDuration = Math.max(18, w / 14) + 's'; }, 100);
+  }
+
+  /* ---------- drawing the board ---------- */
   function when(ms) {
     var d = new Date(ms), now = new Date(), day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     var dd = Math.floor((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - day0) / 86400000);
     var h = d.getHours(), t = (((h + 11) % 12) + 1) + (d.getMinutes() ? ':' + pad(d.getMinutes()) : '') + (h < 12 ? ' am' : ' pm');
     var w = dd === 0 ? (h >= 17 ? 'Tonight' : 'Today') : dd === 1 ? 'Tomorrow' : dd < 7 ? DAYS[d.getDay()].slice(0, 3) : MONTHS[d.getMonth()].slice(0, 3) + ' ' + d.getDate();
-    return { w: w, t: t };
-  }
-  function upcoming() {
-    var now = Date.now(), out = [];
-    follow.forEach(function (k) { (games[k] || []).forEach(function (g) {
-      var live = g.state === 'in', fin = g.state === 'post' && now - g.d < 9 * 3600000, pre = g.state === 'pre' && g.d > now - 3 * 3600000;
-      if (live || fin || pre) out.push({ k: k, g: g, rank: live ? 0 : fin && now - g.d < 4.5 * 3600000 ? 1 : 2 });
-    }); });
-    out.sort(function (a, b) { return a.rank - b.rank || a.g.d - b.g.d; });
-    return out;
+    return w + ' · ' + t;
   }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function ago(t) { var m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; }
-  function gameRow(it) {
-    var T = TEAMS[it.k], g = it.g, wt;
-    var lg = esc(g.lg || T.p.split('/')[1].toUpperCase()).replace(/^Men's International Friendly$/, 'Friendly');
+  function gameRow(g) {
+    var S = g[g.star], O = g[g.star === 'h' ? 'a' : 'h'], wt;
     if (g.state === 'in') wt = '<span class="live">Live · ' + esc(g.detail.replace(/ - /, ' ')) + '</span>';
-    else if (g.state === 'post') wt = 'Final' + (g.su !== '' && g.so !== '' ? (+g.su > +g.so ? ' · Win' : +g.su < +g.so ? ' · Loss' : ' · Draw') : '');
-    else { var w = when(g.d); wt = esc(w.w) + ' · ' + esc(w.t); }
-    wt += '<span class="lg">' + lg + '</span>';
-    var right = g.state !== 'pre' && g.su !== '' ? '<div class="sc">' + esc(g.su) + '<i>–</i>' + esc(g.so) + '</div>' : '';
-    return '<div class="bg"><div class="chip" style="background:' + T.c + '"></div><div class="m"><div class="w">' + wt + '</div><div class="a">' + esc(T.n) + '</div><div class="s">' + (g.home ? 'vs ' : 'at ') + esc(g.opp) + '</div></div>' + right + '</div>';
+    else if (g.state === 'post') wt = 'Final' + (/OT|SO|Pen/i.test(g.detail) ? ' · ' + esc(g.detail.replace(/^Final\/?/i, '')) : '');
+    else wt = esc(when(g.d));
+    wt += '<span class="lg">' + esc(g.lg) + '</span>';
+    var right = g.state !== 'pre' && S.s !== '' ? '<div class="sc">' + esc(S.s) + '<i>–</i>' + esc(O.s) + '</div>' : '';
+    return '<div class="bg"><div class="chip" style="background:' + g.c + '"></div><div class="m"><div class="w">' + wt + '</div><div class="a">' + esc(S.n) + '</div><div class="s">' + (g.star === 'h' ? 'vs ' : 'at ') + esc(O.n) + '</div></div>' + right + '</div>';
   }
-  var pages = [], pageI = 0, pageT = null, lastSig = '';
+  var pages = [], pageI = 0, lastSig = '';
   function buildPages() {
-    var P = [], ups = upcoming(), live = ups.filter(function (x) { return x.g.state === 'in'; });
+    var P = [], gs = ranked(), live = gs.filter(function (g) { return g.state === 'in'; });
     var ns = notes.slice().sort(function (a, b) { return b.t - a.t; });
     for (var i = 0; i < ns.length;) {
       var a = ns[i], b = ns[i + 1], pair = b && a.text.length + b.text.length < 90;
-      var body = [a].concat(pair ? [b] : []).map(function (n) { return '<div class="bn' + (pair ? '' : ' one') + '"><div class="t">' + esc(n.text) + '</div><div class="f">' + (n.from ? esc(n.from) + ' · ' : '') + ago(n.t) + '</div></div>'; }).join('');
-      P.push({ k: 'Family board', h: body }); i += pair ? 2 : 1;
+      P.push({ k: 'Family board', h: [a].concat(pair ? [b] : []).map(function (n) { return '<div class="bn' + (pair ? '' : ' one') + '"><div class="t">' + esc(n.text) + '</div><div class="f">' + (n.from ? esc(n.from) + ' · ' : '') + ago(n.t) + '</div></div>'; }).join('') });
+      i += pair ? 2 : 1;
     }
-    if (ns.length) { if (live.length) P.push({ k: 'Live now', h: live.slice(0, 2).map(gameRow).join('') }); }
-    else if (ups.length) {
-      for (var j = 0; j < Math.min(ups.length, 6); j += 2) P.push({ k: ups[j].g.state === 'in' ? 'Live now' : j ? 'Coming up' : 'Up next', h: ups.slice(j, j + 2).map(gameRow).join('') });
-    } else P.push({ k: 'Family board', h: '<div class="bempty"><div class="t">Nothing on the board</div><div class="f">Pin a note from your phone</div></div>' });
+    var show = ns.length ? live : gs;                                                 // with notes up, only live games interrupt
+    for (var j = 0; j < show.length; j += 2) P.push({ k: show[j].state === 'in' ? 'Live now' : show[j].state === 'post' ? 'Results' : j ? 'Coming up' : 'Up next', h: show.slice(j, j + 2).map(gameRow).join('') });
+    if (!P.length && weather) P.push({ k: 'Brampton', h: '<div class="bw"><div class="t">' + weather.t + '°</div><div class="r"><div class="c">' + esc(weather.w) + '</div><div class="f">Tonight ' + weather.lo + '° · Tomorrow ' + weather.hi1 + '°' + (weather.w1 ? ', ' + esc(weather.w1.toLowerCase()) : '') + '</div></div></div>' });
     return P;
   }
   function renderBoard(advance) {
-    var P = buildPages(), sig = JSON.stringify(P);
+    var P = buildPages(), sig = JSON.stringify(P), body = $('bBody'), scr = $('board');
+    if (!P.length) { pages = []; lastSig = sig; scr.className = 'off'; return; }          // nothing worth showing: the screen rests dark
+    scr.className = '';
     if (!advance && sig === lastSig) return;
     var changed = sig !== lastSig; lastSig = sig; pages = P;
     if (advance) pageI = (pageI + 1) % pages.length; else if (pageI >= pages.length || pageI < 0) pageI = 0;
-    var body = $('bBody'), pg = pages[pageI];
+    var pg = pages[pageI];
     function put() { body.innerHTML = pg.h; $('bKicker').textContent = pg.k;
       $('bDots').innerHTML = pages.length > 1 ? pages.map(function (x, i) { return '<i' + (i === pageI ? ' class="on"' : '') + '></i>'; }).join('') : ''; body.className = ''; }
     if (advance || changed) { body.className = 'fade'; setTimeout(put, 700); } else put();
   }
   setInterval(function () { if (pages.length > 1) renderBoard(true); }, 12000);
-  setInterval(function () { renderBoard(false); }, 60000);   // keeps "Tonight", "5 min ago" and live states fresh
+  setInterval(function () { renderBoard(false); }, 60000);
   renderBoard(false);
   function saveNotes() { store.set('hearthNotes', notes); renderBoard(false); publishBoard(); }
   function addNote(text, from) {
@@ -599,16 +709,18 @@
     pageI = 0; saveNotes();
   }
   function boardState() {
-    return { notes: notes, teams: follow, catalog: Object.keys(TEAMS).map(function (k) { return { k: k, n: TEAMS[k].n, c: TEAMS[k].c }; }),
-             next: upcoming().slice(0, 8).map(function (x) { var g = x.g; return { team: TEAMS[x.k].n, c: TEAMS[x.k].c, opp: g.opp, home: g.home, d: g.d, state: g.state, detail: g.detail, su: g.su, so: g.so, lg: g.lg }; }),
-             page: pages[pageI] ? pages[pageI].k : '' };
+    return { notes: notes, sports: settings,
+             compsCat: [{ k: 'nhl', n: 'NHL · Canadian teams' }, { k: 'epl', n: 'Premier League' }, { k: 'ucl', n: 'Champions League' }, { k: 'ccl', n: 'CONCACAF' }],
+             favsCat: Object.keys(FAVS).map(function (k) { return { k: k, n: FAVS[k].n }; }),
+             next: ranked().map(function (g) { var S = g[g.star], O = g[g.star === 'h' ? 'a' : 'h']; return { team: S.n, opp: O.n, home: g.star === 'h', c: g.c, d: g.d, state: g.state, detail: g.detail, su: S.s, so: O.s, lg: g.lg }; }),
+             news: news, weather: weather, page: pages[pageI] ? pages[pageI].k : (pages.length ? '' : 'off') };
   }
   var publishBoard = function () {};
 
   /* ================= phone remote / admin link =================
      Live status goes to a private channel on a public MQTT relay; the channel name is a random key that only
      exists on this TV and on phones that scanned its code. Nothing personal is sent – just what's playing and how it's running. */
-  var BROKERS = H.brokers || [{ host: 'broker.hivemq.com', port: 8884, path: '/mqtt', ssl: true }, { host: 'broker.emqx.io', port: 8084, path: '/mqtt', ssl: true }];
+  var BROKERS = H.brokers || [{ host: 'broker.hivemq.com', port: 8884, path: '/mqtt', ssl: true }, { host: 'broker.hivemq.com', port: 8000, path: '/mqtt', ssl: false }, { host: 'broker.emqx.io', port: 8084, path: '/mqtt', ssl: true }];
   var key = store.get('hearthLinkKey', '');
   if (!/^[a-z0-9]{16}$/.test(key)) {
     var al = 'abcdefghijkmnpqrstuvwxyz23456789', r = [];
@@ -696,7 +808,7 @@
       case 'note.add': addNote(c.text, c.from); toast('New note on the board', 2500); break;
       case 'note.del': notes = notes.filter(function (n) { return n.id !== c.id; }); saveNotes(); break;
       case 'note.clear': notes = []; saveNotes(); break;
-      case 'teams': if (c.list && c.list.length !== undefined) { follow = c.list.filter(function (k) { return TEAMS[k]; }); store.set('hearthTeams', follow); refreshAll(); } break;
+      case 'sports': if (c.comps) { settings = { comps: c.comps.filter(function (k) { return COMPS[k]; }), favs: (c.favs || []).filter(function (k) { return FAVS[k]; }) }; store.set('hearthSports', settings); refreshSports(); } break;
       case 'reload': pub('ack', { reloading: true }); setTimeout(function () { location.reload(); }, 600); break;
     }
     setTimeout(function () { publishState(true); }, 300);

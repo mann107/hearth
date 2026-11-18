@@ -2,6 +2,14 @@
 
 Versioning: small updates and fixes go up by 0.01, very large feature batches by 0.1, until the 1.0 release.
 
+## Beta 0.2.9
+- Board priorities: notes (only when one exists) → live games → today's and tomorrow's biggest games → Brampton weather. With nothing to show, the screen rests as dark glass instead of showing placeholder text
+- Sports re-focused: NHL games for the Canadian teams (Leafs first, then Sens, Habs, Jets, Oilers, Flames, Canucks), Premier League, Champions League and the main CONCACAF sides (Canada, USA, Mexico, Canadian and top MLS/Liga MX clubs). Big-club matches rank higher; NBA and MLB removed. Favourite teams (Barcelona, Argentina, etc.) can be added from the phone
+- Live scores refresh every minute during games
+- World-news ticker along the bottom of the board: only war, strikes, bombings and attacks from the last 8 hours (NYT, BBC, Al Jazeera, Guardian), ranked and de-duplicated; hidden when there's nothing
+- Phone remote connection now also tries a plain (non-TLS) connection if the secure one fails on the TV
+- Admin page: competitions and favourites, what's coming up, and what the ticker is showing
+
 ## Beta 0.2.8
 - Board rebuilt on a perspective grid mapped from the chimney itself: the mortar joints were traced across the stone and fitted to their shared vanishing point (about 9.5° downhill at the top of the board, 7.5° at the bottom, verticals upright). The frame, text and layout are warped onto that grid, so everything foreshortens with the stone
 - It's now set into the wall instead of hanging on it: a recessed opening with a thin flush trim, where you see the recess's top and right inner faces (we look up at it from the left), with no shadow cast onto the stone
