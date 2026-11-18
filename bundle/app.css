@@ -1,7 +1,7 @@
 #stage{position:absolute;left:0;top:0;transform-origin:0 0;width:1920px;height:1080px;overflow:hidden;font-family:Inter,sans-serif;color:#f4efe6}
 
 /* ---------- the room (everything that lives inside the video) ---------- */
-#world{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;transition:transform 4.5s cubic-bezier(.45,0,.2,1)}
+#world{position:absolute;left:0;top:0;width:1920px;height:1080px}
 #scene{position:absolute;left:0;top:0;width:1920px;height:1080px;object-fit:cover;background:#140c09}
 #fx{position:absolute;inset:0;pointer-events:none;transition:opacity 1.5s ease}
 #fx.off{opacity:0}
@@ -13,7 +13,6 @@
 #firelight{position:absolute;inset:0;mix-blend-mode:screen;opacity:.18;
   background:radial-gradient(ellipse 620px 430px at 512px 615px,rgba(255,138,52,.55) 0%,rgba(255,120,40,.18) 45%,rgba(255,110,30,0) 100%)}
 
-#names{position:absolute;left:370px;top:460px;width:310px;height:110px;opacity:.92}
 .pframe{position:absolute}
 .pframe img{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;transition:opacity 2.5s ease}
 .pframe img.on{opacity:1}
@@ -46,12 +45,17 @@
   background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.42) 100%),
              linear-gradient(180deg,rgba(0,0,0,.28) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 72%,rgba(0,0,0,.34) 100%)}
 #dim{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 6s ease}
-#curtain{position:absolute;inset:0;background:#000;opacity:1;pointer-events:none;transition:opacity 3.5s ease}
+#curtain{position:absolute;inset:0;background:#000;opacity:1;pointer-events:none;transition:opacity 2.6s cubic-bezier(.4,0,.2,1)}
 #curtain.up{opacity:0}
+#curtain.veil{opacity:1;transition:opacity .9s ease}
 
 /* ---------- info layer (fades after a minute) ---------- */
 #overlay{position:absolute;inset:0;opacity:0;transition:opacity 3s ease;pointer-events:none}
 #overlay.show{opacity:1}
+/* first reveal: each corner settles in on its own beat */
+#overlay.intro #tl,#overlay.intro #tr,#overlay.intro #bl,#overlay.intro #br{opacity:0;transform:translateY(10px)}
+#tl,#tr,#bl,#br{transition:opacity 1.6s ease,transform 1.6s cubic-bezier(.2,.7,.2,1)}
+#tr{transition-delay:.35s}#bl{transition-delay:.8s}#br{transition-delay:1.15s}
 #tl,#tr,#bl,#santa,#houseText{text-shadow:0 1px 2px rgba(0,0,0,.6),0 0 14px rgba(0,0,0,.28);-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
 #tl{position:absolute;left:96px;top:78px}
 #greet{font-family:Fraunces,Georgia,serif;font-style:italic;font-weight:400;font-size:44px;color:#f7f1e6}
@@ -85,4 +89,34 @@
 #toast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);padding:12px 22px;border-radius:999px;
   background:rgba(12,9,7,.5);font-size:18px;color:#f4efe6;opacity:0;transition:opacity .6s ease;white-space:nowrap}
 #toast.on{opacity:1}
-#nameset{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;transition:opacity 1.5s ease}
+
+/* ---------- loading ---------- */
+#loader{position:absolute;inset:0;background:#070504;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity 1s ease;pointer-events:none}
+#loader.gone{opacity:0}
+#ember{position:absolute;left:50%;top:50%;width:900px;height:600px;margin:-300px 0 0 -450px;
+  background:radial-gradient(ellipse at 50% 60%,rgba(255,140,60,.16),rgba(255,110,40,.05) 45%,rgba(0,0,0,0) 70%);animation:emb 4s ease-in-out infinite}
+@keyframes emb{0%,100%{opacity:.7}50%{opacity:1}}
+#mark{position:relative;font-family:Fraunces,Georgia,serif;font-style:italic;font-size:76px;color:#f3e6cf;letter-spacing:1px;
+  opacity:0;transform:translateY(6px);transition:opacity 1.4s ease,transform 1.8s cubic-bezier(.2,.7,.2,1)}
+#lline{position:relative;margin-top:34px;width:180px;height:2px;border-radius:1px;background:rgba(243,230,207,.12);overflow:hidden;opacity:0;transition:opacity 1.2s ease .3s}
+#lfill{width:0;height:2px;background:linear-gradient(90deg,rgba(243,207,134,.4),#f3cf86);transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+#lcap{position:relative;margin-top:18px;font-size:15px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:rgba(243,230,207,.45);opacity:0;transition:opacity 1.2s ease .5s}
+#loader.in #mark{opacity:1;transform:none}#loader.in #lline,#loader.in #lcap{opacity:1}
+
+/* ---------- message from a phone ---------- */
+#note{position:absolute;left:50%;top:150px;transform:translate(-50%,-14px);max-width:1000px;padding:26px 44px 30px;border-radius:22px;text-align:center;
+  background:rgba(14,10,8,.62);box-shadow:0 20px 60px rgba(0,0,0,.35);opacity:0;transition:opacity 1.2s ease,transform 1.4s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+#note.on{opacity:1;transform:translate(-50%,0)}
+#noteFrom{font-size:14px;font-weight:600;letter-spacing:3.5px;text-transform:uppercase;color:rgba(243,207,134,.85)}
+#noteText{margin-top:10px;font-family:Fraunces,Georgia,serif;font-size:46px;line-height:1.18;color:#f7f1e6}
+
+/* ---------- pairing card ---------- */
+#pair{position:absolute;right:88px;top:236px;display:flex;align-items:center;gap:30px;padding:28px 34px;border-radius:24px;
+  background:rgba(12,9,7,.72);box-shadow:0 24px 70px rgba(0,0,0,.4);opacity:0;transform:translateY(10px);transition:opacity 1.2s ease,transform 1.4s ease;pointer-events:none}
+#pair.on{opacity:1;transform:none}
+#pairQR{width:176px;height:176px;border-radius:10px;background:#f7f1e6}
+#pairKicker{font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:rgba(243,207,134,.85)}
+#pairLine{margin-top:10px;font-family:Fraunces,Georgia,serif;font-size:32px;color:#f7f1e6;max-width:330px;line-height:1.15}
+#pairUrl{margin-top:14px;font-size:17px;color:rgba(244,239,230,.75)}
+#pairCode{margin-top:6px;font-size:17px;font-weight:600;letter-spacing:2px;color:#f3cf86}

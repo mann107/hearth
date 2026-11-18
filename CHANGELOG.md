@@ -2,7 +2,15 @@
 
 Versioning: small updates and fixes go up by 0.01, very large feature batches by 0.1, until the 1.0 release.
 
-## Beta 0.13
+## Beta 0.2.5
+- Stockings redone: each name is now stitched across a white fur cuff and baked into every frame of the fire video, so it moves exactly with its stocking (no more drift or sticker look). The garland ribbon still hangs in front of Gureet's stocking.
+- The TV downloads the new 4K video from GitHub by itself and keeps it in its own storage; no USB step
+- New loading screen: Hearth wordmark and a progress line, the room only appears once the video is really playing, then the corners settle in one by one
+- Switching videos mid-session is a soft dip to black instead of a hard cut
+- Colour buttons and number keys no longer do anything (no more accidental close-ups or demos); the yellow-button close-ups are gone
+- New phone admin page (mann107.github.io/hearth/admin): live status updating every 2 seconds (what's playing, smoothness, response time, buffer, dropped frames, memory, uptime, elf, Santa, the TV's activity log) plus controls: volume, music, living light, Santa fly-by, Christmas Eve demo, elf, photos, notes to the TV, restart
+- Pairing: the TV shows a QR code until a phone connects; hold OK on the remote to show it again
+
 - Swinging stocking names now load from GitHub, so no USB step is needed
 
 ## Beta 0.12

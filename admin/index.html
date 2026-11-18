@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0d0907">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hearth">
+<title>Hearth · Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0907;--card:#17110d;--card2:#1e1611;--line:rgba(244,232,214,.09);--ink:#f5ede0;--ink2:rgba(245,237,224,.68);--ink3:rgba(245,237,224,.42);
+  --gold:#f3cf86;--ember:#e8703c;--good:#7fc98f;--bad:#ef7a6a;--warn:#e9b65b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 40px);max-width:980px;margin:0 auto}
+h1{font:italic 400 34px/1 Fraunces,Georgia,serif;margin:0;letter-spacing:.2px}
+h2{font:600 11.5px/1 Inter;letter-spacing:2.6px;text-transform:uppercase;color:var(--ink3);margin:0 0 14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:var(--card);font-size:13px;font-weight:600;color:var(--ink2)}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--ink3)}
+.pill.live i{background:var(--good);box-shadow:0 0 10px var(--good);animation:br 2s ease-in-out infinite}.pill.live{color:var(--ink)}
+.pill.off i{background:var(--bad)}
+@keyframes br{50%{opacity:.45}}
+.sub{color:var(--ink3);font-size:13px;margin:0 0 22px}
+.grid{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:760px){.grid.two{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border-radius:20px;padding:18px 18px 20px;border:1px solid var(--line)}
+.hero .scene{font:400 30px/1.1 Fraunces,Georgia,serif;margin:2px 0 4px}
+.hero .meta{color:var(--ink2);font-size:13.5px}
+.bar{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}
+.bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ember),var(--gold));border-radius:2px;transition:width .9s linear}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:13px;color:var(--ink2)}
+.row strong{color:var(--ink);font-weight:500}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:6px 0 0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:rgba(255,255,255,.12)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--gold);margin-top:-9px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.btns{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+button{font:500 14px Inter;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px 12px;text-align:left;cursor:pointer;min-height:58px;transition:transform .12s,background .2s}
+button:active{transform:scale(.97);background:#2a1f18}
+button small{display:block;color:var(--ink3);font-size:12px;margin-top:3px;font-weight:400}
+button.on{border-color:rgba(243,207,134,.5);background:#2a2015}
+button.primary{background:var(--gold);color:#1b120d;border:0;font-weight:600;text-align:center}
+button.ghost{background:transparent}
+.toggle{display:flex;align-items:center;justify-content:space-between}
+.sw{width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,.14);position:relative;flex:none;transition:background .2s}
+.sw:after{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s}
+.on .sw{background:var(--gold)}.on .sw:after{transform:translateX(18px)}
+textarea,input[type=text]{width:100%;font:15px Inter;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;outline:none}
+textarea{min-height:76px;resize:vertical}
+textarea:focus,input[type=text]:focus{border-color:rgba(243,207,134,.45)}
+.msgrow{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:10px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile{background:var(--card2);border-radius:14px;padding:12px 14px 10px;border:1px solid var(--line);min-width:0}
+.tile .k{font-size:11.5px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink3)}
+.tile .v{font:500 24px/1.15 Inter;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .v small{font-size:13px;color:var(--ink3);font-weight:500;margin-left:3px}
+.tile .n{font-size:12px;color:var(--ink3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spark{position:relative;height:38px;margin-top:6px}
+.spark canvas{width:100%;height:38px;display:block}
+.spark .tip{position:absolute;top:-4px;right:0;font-size:11.5px;color:var(--ink2);background:var(--card);padding:1px 6px;border-radius:6px;display:none;font-variant-numeric:tabular-nums}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500}
+.status:before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;margin:0;font-size:13.5px}
+dt{color:var(--ink3)}dd{margin:0;text-align:right;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+#log{font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink2);max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+#log div:last-child{color:var(--ink)}
+.pairing{max-width:420px;margin:12vh auto 0;text-align:center}
+.pairing p{color:var(--ink2)}
+.pairing input{text-align:center;letter-spacing:3px;font-size:18px;margin:18px 0 12px}
+.hide{display:none!important}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 22px);transform:translate(-50%,20px);background:#2a2015;color:var(--ink);padding:11px 18px;border-radius:999px;font-size:14px;opacity:0;transition:.35s;pointer-events:none;border:1px solid rgba(243,207,134,.25)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.foot{margin-top:26px;text-align:center;font-size:12px;color:var(--ink3)}
+.foot a{color:var(--ink3)}
+</style>
+</head>
+<body>
+
+<section id="pairView" class="pairing hide">
+  <h1>Hearth</h1>
+  <p>Enter the code shown on your TV, or scan its QR code.<br>Hold <b>OK</b> on the TV remote to show it again.</p>
+  <input id="codeIn" type="text" placeholder="abcd-efgh-ijkm-npqr" autocapitalize="off" autocomplete="off" spellcheck="false">
+  <button class="primary" style="width:100%" id="codeGo">Connect</button>
+</section>
+
+<main id="app" class="hide">
+  <div class="top"><h1>Hearth</h1><span class="pill" id="pill"><i></i><span id="pillText">Connecting…</span></span></div>
+  <p class="sub" id="sub">Waiting for the TV…</p>
+
+  <div class="grid">
+    <section class="card hero">
+      <h2>Now playing</h2>
+      <div class="scene" id="scene">–</div>
+      <div class="meta" id="sceneMeta">–</div>
+      <div class="row"><span>Fire loop</span><strong id="loopT">–</strong></div>
+      <div class="bar"><b id="loopBar"></b></div>
+      <div class="row"><span>Music</span><strong id="musicT">–</strong></div>
+      <div class="bar"><b id="musicBar"></b></div>
+      <div class="row"><span>Volume</span><strong id="volT">–</strong></div>
+      <input type="range" id="vol" min="0" max="100" step="1" value="35">
+      <div class="btns" style="margin-top:10px">
+        <button id="musicBtn">Pause music<small>Fades out gently</small></button>
+        <button id="fxBtn" class="toggle"><span>Living light<small>Glow &amp; twinkle</small></span><span class="sw"></span></button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Do something</h2>
+      <div class="btns">
+        <button data-c="fly">Santa flies by<small>Past the windows</small></button>
+        <button data-c="santa">Christmas Eve demo<small>30-second replay</small></button>
+        <button data-c="elf" data-a="hint">Where's the elf?<small>He glows for a moment</small></button>
+        <button data-c="elf" data-a="move">Hide the elf<small>Moves somewhere new</small></button>
+        <button data-c="photo">Next photos<small>Both picture frames</small></button>
+        <button data-c="overlay">Show the clock<small>Info layer for a minute</small></button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Send a note to the TV</h2>
+      <textarea id="msg" maxlength="160" placeholder="Dinner's ready! 🍽"></textarea>
+      <div class="msgrow"><input type="text" id="from" maxlength="30" placeholder="From (your name)"><button class="primary" id="send" style="min-height:0;padding:0 22px">Send</button></div>
+    </section>
+
+    <section class="card">
+      <h2>Health · live</h2>
+      <div class="tiles">
+        <div class="tile"><div class="k">Smoothness</div><div class="v" id="fps">–<small>fps</small></div><div class="spark"><canvas id="sFps"></canvas><span class="tip"></span></div></div>
+        <div class="tile"><div class="k">Response</div><div class="v" id="rtt">–<small>ms</small></div><div class="spark"><canvas id="sRtt"></canvas><span class="tip"></span></div></div>
+        <div class="tile"><div class="k">Busy-ness</div><div class="v" id="lag">–<small>ms lag</small></div><div class="spark"><canvas id="sLag"></canvas><span class="tip"></span></div></div>
+        <div class="tile"><div class="k">Video buffer</div><div class="v" id="buf">–<small>s ahead</small></div><div class="spark"><canvas id="sBuf"></canvas><span class="tip"></span></div></div>
+        <div class="tile"><div class="k">Dropped frames</div><div class="v" id="drop">–</div><div class="n" id="dropN">–</div></div>
+        <div class="tile"><div class="k">Memory</div><div class="v" id="heap">–<small>MB</small></div><div class="n">JavaScript heap</div></div>
+        <div class="tile"><div class="k">Up for</div><div class="v" id="up">–</div><div class="n" id="upN">since start</div></div>
+        <div class="tile"><div class="k">Picture</div><div class="v" id="res">–</div><div class="n" id="resN">–</div></div>
+      </div>
+    </section>
+
+    <div class="grid two">
+      <section class="card">
+        <h2>The room</h2>
+        <dl>
+          <dt>Elf is at</dt><dd id="elf">–</dd>
+          <dt>Elf moves in</dt><dd id="elfNext">–</dd>
+          <dt>Santa</dt><dd id="santa">–</dd>
+          <dt>Countdown</dt><dd id="count">–</dd>
+          <dt>Photos showing</dt><dd id="photos">–</dd>
+          <dt>Night dimming</dt><dd id="night">–</dd>
+          <dt>Info layer</dt><dd id="ov">–</dd>
+        </dl>
+        <div class="bar"><b id="santaBar"></b></div>
+      </section>
+      <section class="card">
+        <h2>System</h2>
+        <dl>
+          <dt>Hearth</dt><dd id="ver">–</dd>
+          <dt>Loaded from</dt><dd id="srcL">–</dd>
+          <dt>Fire video</dt><dd id="vsrc">–</dd>
+          <dt>New video</dt><dd id="mstate">–</dd>
+          <dt>USB stick</dt><dd id="usb">–</dd>
+          <dt>Relay</dt><dd id="broker">–</dd>
+          <dt>Screen</dt><dd id="screen">–</dd>
+        </dl>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Activity on the TV</h2>
+      <div id="log">–</div>
+    </section>
+
+    <section class="card">
+      <h2>Maintenance</h2>
+      <div class="btns">
+        <button data-c="pair">Show pairing code<small>On the TV for a minute</small></button>
+        <button data-c="reload" data-confirm="Restart Hearth on the TV? It loads the newest version.">Restart Hearth<small>Loads the newest version</small></button>
+        <button class="ghost" id="forget">Forget this TV<small>On this phone only</small></button>
+      </div>
+    </section>
+  </div>
+  <p class="foot">Private family remote · the link only works with your TV's code</p>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="../lib/paho-mqtt.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var BROKERS = [{ host: 'broker.hivemq.com', port: 8884, path: '/mqtt', ssl: true }, { host: 'broker.emqx.io', port: 8084, path: '/mqtt', ssl: true }];
+  var tb = /[?&]testbroker=([^&]+)/.exec(location.search); if (tb) { var p = decodeURIComponent(tb[1]).split(':'); BROKERS = [{ host: p[0], port: +p[1], path: '/', ssl: false }]; }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+  function clean(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+
+  var key = clean(location.hash.slice(1)) || ls('hearthKey') || '';
+  if (location.hash) { history.replaceState(null, '', location.pathname + location.search); }
+
+  function showPair() {
+    $('pairView').classList.remove('hide'); $('app').classList.add('hide');
+    $('codeGo').onclick = function () { var k = clean($('codeIn').value); if (k.length !== 16) { toast('That code should be 16 letters and numbers'); return; } key = k; ls('hearthKey', k); $('pairView').classList.add('hide'); start(); };
+  }
+
+  var toastT;
+  function toast(t) { var el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { el.classList.remove('on'); }, 2200); }
+
+  /* ---------- tiny sparklines (single series, gold, 2px) ---------- */
+  function Spark(id, unit, fixedMax) {
+    var cv = $(id), tip = cv.parentNode.querySelector('.tip'), data = [], N = 90;
+    function draw() {
+      var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight; if (!w) return;
+      cv.width = w * dpr; cv.height = h * dpr; var g = cv.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
+      if (data.length < 2) return;
+      var max = fixedMax || Math.max.apply(null, data) * 1.15 || 1, step = w / (N - 1), x0 = w - (data.length - 1) * step;
+      function y(v) { return h - 3 - (Math.min(v, max) / max) * (h - 6); }
+      g.beginPath(); data.forEach(function (v, i) { var X = x0 + i * step; i ? g.lineTo(X, y(v)) : g.moveTo(X, y(v)); });
+      g.strokeStyle = '#f3cf86'; g.lineWidth = 2; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke();
+      g.lineTo(w, h); g.lineTo(x0, h); g.closePath(); var gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(243,207,134,.18)'); gr.addColorStop(1, 'rgba(243,207,134,0)'); g.fillStyle = gr; g.fill();
+    }
+    function hover(e) {
+      if (data.length < 2) return; var r = cv.getBoundingClientRect(), px = ((e.touches ? e.touches[0].clientX : e.clientX) - r.left);
+      var step = r.width / (N - 1), i = Math.round((px - (r.width - (data.length - 1) * step)) / step); i = Math.max(0, Math.min(data.length - 1, i));
+      tip.textContent = data[i] + ' ' + unit + ' · ' + Math.round((data.length - 1 - i) * 2) + 's ago'; tip.style.display = 'block';
+    }
+    cv.addEventListener('mousemove', hover); cv.addEventListener('touchmove', hover, { passive: true }); cv.addEventListener('touchstart', hover, { passive: true });
+    cv.addEventListener('mouseleave', function () { tip.style.display = 'none'; }); cv.addEventListener('touchend', function () { setTimeout(function () { tip.style.display = 'none'; }, 1200); });
+    window.addEventListener('resize', draw);
+    return { push: function (v) { if (v == null || isNaN(v)) return; data.push(v); if (data.length > N) data.shift(); draw(); } };
+  }
+
+  var clients = [], S = null, lastState = 0, onlineFlag = null, lastDrop = null, dropRate = [], fromName = ls('hearthFrom') || '';
+  var sp = {};
+  function start() {
+    $('app').classList.remove('hide');
+    sp.fps = Spark('sFps', 'fps', 62); sp.rtt = Spark('sRtt', 'ms'); sp.lag = Spark('sLag', 'ms'); sp.buf = Spark('sBuf', 's');
+    $('from').value = fromName;
+    BROKERS.forEach(connect);
+    setInterval(hello, 20000);
+    setInterval(ping, 5000);
+    setInterval(freshness, 1000);
+    bind();
+  }
+  function base() { return 'hearth/v1/' + key + '/'; }
+  function connect(B) {
+    var st = { B: B, c: null, up: false, tries: 0 }; clients.push(st);
+    (function go() {
+      var c = new Paho.Client(B.host, B.port, B.path, 'hearth-phone-' + Math.random().toString(36).slice(2, 10)); st.c = c;
+      c.onConnectionLost = function () { st.up = false; setTimeout(go, Math.min(30000, 2000 * ++st.tries)); };
+      c.onMessageArrived = function (m) { onMsg(m.destinationName.slice(base().length), m.payloadString, B.host); };
+      c.connect({ useSSL: B.ssl !== false, timeout: 10, keepAliveInterval: 30, cleanSession: true,
+        onSuccess: function () { st.up = true; st.tries = 0; c.subscribe(base() + '#', { qos: 0 }); send({ c: 'hello' }, st); },
+        onFailure: function () { st.up = false; setTimeout(go, Math.min(30000, 2000 * ++st.tries)); } });
+    })();
+  }
+  function send(obj, only) {
+    var ok = false;
+    clients.forEach(function (st) { if (!st.up || (only && st !== only)) return; try { var m = new Paho.Message(JSON.stringify(obj)); m.destinationName = base() + 'cmd'; st.c.send(m); ok = true; } catch (e) {} });
+    return ok;
+  }
+  function cmd(obj, label) { if (!send(obj)) { toast('Not connected yet'); return; } if (label) toast(label); }
+  function hello() { send({ c: 'hello' }); }
+  var pings = {};
+  function ping() { var id = Math.random().toString(36).slice(2, 8); pings[id] = performance.now(); send({ c: 'ping', id: id }); }
+
+  function onMsg(topic, txt, host) {
+    if (topic === 'state') { try { var s = JSON.parse(txt); if (!S || s.t >= S.t) { S = s; S._host = host; lastState = Date.now(); render(); } } catch (e) {} }
+    else if (topic === 'log') { try { renderLog(JSON.parse(txt)); } catch (e) {} }
+    else if (topic === 'online') { onlineFlag = txt === 'online'; freshness(); }
+    else if (topic === 'ack') { try { var a = JSON.parse(txt); if (a.pong && pings[a.pong]) { var ms = Math.round(performance.now() - pings[a.pong]); delete pings[a.pong]; $('rtt').innerHTML = ms + '<small>ms</small>'; sp.rtt.push(ms); } if (a.reloading) toast('Hearth is restarting on the TV'); } catch (e) {} }
+  }
+
+  function fmt(sec) { sec = Math.max(0, Math.round(sec || 0)); var h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s; }
+  function dur(sec) { var d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60); return d ? d + 'd ' + h + 'h' : h ? h + 'h ' + m + 'm' : m ? m + 'm' : Math.round(sec) + 's'; }
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  var volDragging = false;
+  function render() {
+    var s = S, v = s.video || {}, mu = s.music || {}, r = s.room || {}, p = s.perf || {}, md = s.media || {};
+    $('scene').textContent = cap(s.scene || '–');
+    $('sceneMeta').textContent = (r.countdown || '') + (r.night ? ' · night dimming' : '');
+    $('loopT').textContent = v.d ? fmt(v.t) + ' / ' + fmt(v.d) : (v.paused ? 'paused' : '–');
+    $('loopBar').style.width = v.d ? (v.t / v.d * 100) + '%' : '0';
+    $('musicT').textContent = mu.d ? fmt(mu.t) + ' / ' + fmt(mu.d) : (mu.playing ? 'playing' : 'stopped');
+    $('musicBar').style.width = mu.d ? (mu.t / mu.d * 100) + '%' : '0';
+    if (!volDragging) { $('vol').value = Math.round((mu.vol || 0) * 100); $('volT').textContent = Math.round((mu.vol || 0) * 100) + '%'; }
+    $('musicBtn').innerHTML = (mu.paused ? 'Play music<small>Fades back in</small>' : 'Pause music<small>Fades out gently</small>');
+    $('fxBtn').classList.toggle('on', !!r.fx);
+    $('fps').innerHTML = (p.fps || 0) + '<small>fps</small>'; sp.fps.push(p.fps);
+    $('lag').innerHTML = (p.lag || 0) + '<small>ms lag</small>'; sp.lag.push(p.lag);
+    $('buf').innerHTML = (v.buf || 0) + '<small>s ahead</small>'; sp.buf.push(v.buf);
+    if (lastDrop !== null && v.dropped >= lastDrop) dropRate.push(v.dropped - lastDrop); if (dropRate.length > 30) dropRate.shift(); lastDrop = v.dropped;
+    $('drop').textContent = (v.dropped || 0).toLocaleString();
+    var dr = dropRate.reduce(function (a, b) { return a + b; }, 0);
+    $('dropN').innerHTML = '<span class="status ' + (dr ? 'warn' : 'good') + '">' + (dr ? dr + ' in the last minute' : 'none lately') + '</span>';
+    $('heap').innerHTML = p.heap == null ? '–' : p.heap + '<small>MB</small>';
+    $('up').textContent = dur(s.up || 0);
+    $('res').textContent = v.w ? (v.w >= 3800 ? '4K' : v.h + 'p') : '–';
+    $('resN').textContent = v.w ? v.w + '×' + v.h + (v.hevc ? ' · HEVC' : '') : 'no picture';
+    $('elf').textContent = cap(r.elf || '–'); $('elfNext').textContent = fmt(r.elfNext);
+    $('santa').textContent = r.santa || '–'; $('santaBar').style.width = (r.santaPct || 0) + '%';
+    $('count').textContent = r.countdown || '–';
+    $('photos').textContent = r.photoA != null ? '#' + (r.photoA + 1) + ' and #' + (r.photoB + 1) + ' of 7' : '–';
+    $('night').textContent = r.night ? 'On (11 pm – 6 am)' : 'Off';
+    $('ov').textContent = r.overlay ? 'Showing' : 'Hidden';
+    $('ver').textContent = 'Beta ' + s.v + (s.shell ? ' · shell ' + s.shell : '');
+    $('srcL').textContent = s.src || '–';
+    $('vsrc').textContent = v.src || '–';
+    var ms = md.state || '–'; if (ms === 'downloading') ms = 'Downloading ' + (md.pct || 0) + '%'; else if (ms === 'stored') ms = 'Stored on the TV'; else ms = cap(ms);
+    $('mstate').innerHTML = '<span class="status ' + (md.state === 'stored' ? 'good' : /fail/.test(md.state) ? 'bad' : 'warn') + '">' + ms + '</span>';
+    $('usb').textContent = s.usb ? 'Connected' : 'Not found';
+    $('broker').textContent = (s.net && s.net.broker) || s._host || '–';
+    $('screen').textContent = s.screen || '–';
+    freshness();
+  }
+  function freshness() {
+    var pill = $('pill'), age = lastState ? Math.round((Date.now() - lastState) / 1000) : null, anyUp = clients.some(function (c) { return c.up; });
+    if (!anyUp) { pill.className = 'pill'; $('pillText').textContent = 'Connecting…'; }
+    else if (onlineFlag === false || age === null || age > 75) { pill.className = 'pill off'; $('pillText').textContent = onlineFlag === false ? 'TV is off' : 'Waiting for TV'; }
+    else { pill.className = 'pill live'; $('pillText').textContent = 'Live'; }
+    $('sub').textContent = !S ? 'Waiting for the TV…' : (onlineFlag === false ? 'Last seen ' : 'Updated ') + (age < 2 ? 'just now' : age < 120 ? age + 's ago' : dur(age) + ' ago') + (S ? ' · up ' + dur(S.up + (age || 0)) : '');
+  }
+  function renderLog(lines) {
+    var el = $('log'), atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
+    el.innerHTML = ''; (lines || []).forEach(function (l) { var d = document.createElement('div'); d.textContent = l; el.appendChild(d); });
+    if (atBottom) el.scrollTop = el.scrollHeight;
+  }
+
+  function bind() {
+    [].forEach.call(document.querySelectorAll('button[data-c]'), function (b) {
+      b.onclick = function () {
+        if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
+        var o = { c: b.dataset.c }; if (b.dataset.a) o.a = b.dataset.a;
+        cmd(o, b.firstChild.textContent.trim());
+      };
+    });
+    var vt = null;
+    $('vol').addEventListener('input', function () { volDragging = true; $('volT').textContent = this.value + '%'; clearTimeout(vt); var v = this.value; vt = setTimeout(function () { send({ c: 'vol', v: v / 100 }); }, 120); });
+    $('vol').addEventListener('change', function () { setTimeout(function () { volDragging = false; }, 2500); });
+    $('musicBtn').onclick = function () { var on = S && S.music && S.music.paused; cmd({ c: 'music', on: !!on }, on ? 'Music on' : 'Music paused'); };
+    $('fxBtn').onclick = function () { var on = !(S && S.room && S.room.fx); cmd({ c: 'fx', on: on }, on ? 'Living light on' : 'Living light off'); };
+    $('send').onclick = function () {
+      var t = $('msg').value.trim(); if (!t) { toast('Write a note first'); return; }
+      fromName = $('from').value.trim(); ls('hearthFrom', fromName);
+      if (send({ c: 'msg', text: t, from: fromName, ms: 30000 })) { $('msg').value = ''; toast('Sent to the TV'); } else toast('Not connected yet');
+    };
+    $('forget').onclick = function () { if (confirm('Forget this TV on this phone? You can pair again with the code.')) { ls('hearthKey', null); location.reload(); } };
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) { hello(); ping(); } });
+  }
+
+  if (key.length === 16) { ls('hearthKey', key); start(); } else showPair();
+})();
+</script>
+</body>
+</html>
