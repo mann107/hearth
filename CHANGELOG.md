@@ -2,6 +2,9 @@
 
 Versioning: small updates and fixes go up by 0.01, very large feature batches by 0.1, until the 1.0 release.
 
+## Beta 0.2.7
+- The chimney board now sits in the chimney's own perspective: its top and bottom follow the stone courses (sloping down to the right as we look up at the chimney), the verticals stay upright, the frame shows its edge thickness on the left, and it casts its shadow down onto the stone. Slightly softened to match the video
+
 ## Beta 0.2.6
 - New board on the chimney: a framed screen hung on the stone above the wreath, lit by the fire like the rest of the room
 - Pin as many notes as you like from the phone; they rotate on the board, newest first, and stay until removed
